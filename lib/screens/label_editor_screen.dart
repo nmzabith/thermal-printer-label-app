@@ -3,6 +3,7 @@ import '../models/shipping_label.dart';
 import '../models/contact_info.dart';
 import '../widgets/contact_info_form.dart';
 import '../services/from_contact_service.dart';
+import 'visual_label_designer_screen.dart';
 
 class LabelEditorScreen extends StatefulWidget {
   final ShippingLabel label;
@@ -106,6 +107,17 @@ class _LabelEditorScreenState extends State<LabelEditorScreen> {
           title: Text(widget.isNew ? 'New Label' : 'Edit Label'),
           backgroundColor: Theme.of(context).colorScheme.inversePrimary,
           actions: [
+            IconButton(
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => const VisualLabelDesignerScreen(),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.design_services),
+              tooltip: 'Visual Designer',
+            ),
             TextButton(
               onPressed: _saveLabel,
               child: const Text(

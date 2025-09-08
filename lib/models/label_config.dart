@@ -30,6 +30,9 @@ class LabelConfig {
   @override
   int get hashCode => name.hashCode ^ widthMm.hashCode ^ heightMm.hashCode;
 
+  /// Unique identifier based on dimensions
+  String get id => '${widthMm.toInt()}x${heightMm.toInt()}';
+
   /// Convert to Map for storage
   Map<String, dynamic> toMap() {
     return {
@@ -41,6 +44,9 @@ class LabelConfig {
     };
   }
 
+  /// Alias for toMap to match expected interface
+  Map<String, dynamic> toJson() => toMap();
+
   /// Create from Map
   factory LabelConfig.fromMap(Map<String, dynamic> map) {
     return LabelConfig(
@@ -51,6 +57,9 @@ class LabelConfig {
       description: map['description'] ?? '',
     );
   }
+
+  /// Alias for fromMap to match expected interface
+  factory LabelConfig.fromJson(Map<String, dynamic> json) => LabelConfig.fromMap(json);
 }
 
 /// Predefined label configurations for common thermal printer labels

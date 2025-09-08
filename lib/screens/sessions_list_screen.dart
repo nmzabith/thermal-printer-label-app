@@ -5,6 +5,7 @@ import 'session_detail_screen.dart';
 import 'thermal_printer_settings_screen.dart';
 import 'from_contacts_manager_screen.dart';
 import 'font_settings_screen.dart';
+import 'label_designer_list_screen.dart';
 
 class SessionsListScreen extends StatefulWidget {
   const SessionsListScreen({super.key});
@@ -174,6 +175,13 @@ class _SessionsListScreenState extends State<SessionsListScreen> {
                     ),
                   );
                   break;
+                case 'label_designer':
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => const LabelDesignerListScreen(),
+                    ),
+                  );
+                  break;
               }
             },
             itemBuilder: (context) => [
@@ -184,6 +192,16 @@ class _SessionsListScreenState extends State<SessionsListScreen> {
                     Icon(Icons.contact_phone),
                     SizedBox(width: 8),
                     Text('FROM Contacts'),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'label_designer',
+                child: Row(
+                  children: [
+                    Icon(Icons.design_services),
+                    SizedBox(width: 8),
+                    Text('Label Designer'),
                   ],
                 ),
               ),

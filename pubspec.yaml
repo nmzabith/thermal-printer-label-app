@@ -37,6 +37,7 @@ dependencies:
   image_picker: ^1.0.2            # Pick images from gallery/camera
   qr_flutter: ^4.1.0              # Generate QR codes for labels
   image: ^3.3.0                   # Image processing utilities
+  file_picker: ^6.1.1             # File picker for custom icons/images
   
   # Utility Packages
   uuid: ^3.0.7                    # Generate unique IDs
