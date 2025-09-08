@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import '../models/print_session.dart';
 import '../services/session_service.dart';
+import '../widgets/material3_components.dart';
 import 'session_detail_screen.dart';
 import 'thermal_printer_settings_screen.dart';
 import 'from_contacts_manager_screen.dart';
 import 'font_settings_screen.dart';
 import 'label_designer_list_screen.dart';
+import 'material3_showcase_screen.dart';
 
 class SessionsListScreen extends StatefulWidget {
   const SessionsListScreen({super.key});
@@ -182,6 +184,13 @@ class _SessionsListScreenState extends State<SessionsListScreen> {
                     ),
                   );
                   break;
+                case 'material3_showcase':
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => const Material3ShowcaseScreen(),
+                    ),
+                  );
+                  break;
               }
             },
             itemBuilder: (context) => [
@@ -202,6 +211,16 @@ class _SessionsListScreenState extends State<SessionsListScreen> {
                     Icon(Icons.design_services),
                     SizedBox(width: 8),
                     Text('Label Designer'),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'material3_showcase',
+                child: Row(
+                  children: [
+                    Icon(Icons.auto_awesome),
+                    SizedBox(width: 8),
+                    Text('Material 3 Demo'),
                   ],
                 ),
               ),

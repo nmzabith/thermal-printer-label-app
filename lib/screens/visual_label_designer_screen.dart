@@ -5,6 +5,7 @@ import '../models/label_element.dart';
 import '../models/label_config.dart';
 import '../services/custom_label_design_service.dart';
 import '../services/label_config_service.dart';
+import '../widgets/material3_components.dart';
 
 class VisualLabelDesignerScreen extends StatefulWidget {
   final CustomLabelDesign? initialDesign;
