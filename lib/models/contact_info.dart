@@ -6,7 +6,7 @@ class ContactInfo {
 
   ContactInfo({
     required this.name,
-    required this.address,
+    this.address = '',                // Make address optional with empty default
     required this.phoneNumber1,
     this.phoneNumber2 = '',
   });

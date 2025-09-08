@@ -214,14 +214,16 @@ class _ContactInfoFormState extends State<ContactInfoForm> {
             // Address Field
             TextFormField(
               controller: _addressController,
-              decoration: const InputDecoration(
-                labelText: 'Address',
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.location_on),
+              decoration: InputDecoration(
+                labelText: widget.isFromContact ? 'Address (Optional)' : 'Address',
+                border: const OutlineInputBorder(),
+                prefixIcon: const Icon(Icons.location_on),
+                helperText: widget.isFromContact ? 'Address is optional for sender' : null,
               ),
               maxLines: 3,
               validator: (value) {
-                if (value == null || value.isEmpty) {
+                // Address is optional for FROM contacts, required for TO contacts
+                if (!widget.isFromContact && (value == null || value.isEmpty)) {
                   return 'Please enter an address';
                 }
                 return null;

@@ -4,6 +4,7 @@ import '../services/session_service.dart';
 import 'session_detail_screen.dart';
 import 'thermal_printer_settings_screen.dart';
 import 'from_contacts_manager_screen.dart';
+import 'font_settings_screen.dart';
 
 class SessionsListScreen extends StatefulWidget {
   const SessionsListScreen({super.key});
@@ -159,6 +160,13 @@ class _SessionsListScreenState extends State<SessionsListScreen> {
                     ),
                   );
                   break;
+                case 'font_settings':
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => const FontSettingsScreen(),
+                    ),
+                  );
+                  break;
                 case 'from_contacts':
                   Navigator.of(context).push(
                     MaterialPageRoute(
@@ -186,6 +194,16 @@ class _SessionsListScreenState extends State<SessionsListScreen> {
                     Icon(Icons.settings),
                     SizedBox(width: 8),
                     Text('Printer Settings'),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'font_settings',
+                child: Row(
+                  children: [
+                    Icon(Icons.text_fields),
+                    SizedBox(width: 8),
+                    Text('Font Settings'),
                   ],
                 ),
               ),

@@ -135,7 +135,23 @@ class _ThermalPrinterSettingsScreenState extends State<ThermalPrinterSettingsScr
     });
 
     try {
+      // Show progress message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Connecting to ${device.name}...'),
+          backgroundColor: Colors.blue,
+          duration: const Duration(seconds: 3),
+        ),
+      );
+
       bool success = await _printerService.connectToPrinter(device);
+      
+      // Allow extra time for connection to stabilize
+      if (success) {
+        await Future.delayed(const Duration(seconds: 1));
+        // Double check connection status
+        success = await _printerService.isConnected;
+      }
       
       if (mounted) {
         setState(() {
@@ -143,16 +159,23 @@ class _ThermalPrinterSettingsScreenState extends State<ThermalPrinterSettingsScr
           if (success) {
             _selectedPrinter = device;
             _isConnected = true;
+            ScaffoldMessenger.of(context).clearSnackBars();
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text('Connected to ${device.name}'),
+                content: Text('✅ Connected to ${device.name}'),
                 backgroundColor: Colors.green,
                 duration: const Duration(seconds: 2),
               ),
             );
           } else {
+            ScaffoldMessenger.of(context).clearSnackBars();
             _showErrorDialog('Connection Failed', 
-                'Failed to connect to ${device.name}. Please ensure the printer is turned on and in pairing mode.');
+                'Failed to connect to ${device.name}.\n\n'
+                'Please ensure:\n'
+                '• Printer is turned on\n'
+                '• Printer is in pairing mode\n'
+                '• Printer is not connected to another device\n'
+                '• You are within range (< 10m)');
           }
         });
       }
@@ -162,7 +185,10 @@ class _ThermalPrinterSettingsScreenState extends State<ThermalPrinterSettingsScr
         setState(() {
           _isConnecting = false;
         });
-        _showErrorDialog('Connection Error', 'Failed to connect to printer: ${e.toString()}');
+        ScaffoldMessenger.of(context).clearSnackBars();
+        _showErrorDialog('Connection Error', 
+            'Failed to connect to printer: ${e.toString()}\n\n'
+            'Try turning the printer off and on again, then retry.');
       }
     }
   }

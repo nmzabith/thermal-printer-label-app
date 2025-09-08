@@ -65,16 +65,30 @@ class LabelConfigService {
   Future<List<LabelConfig>> getCustomConfigs() async {
     await initialize();
     
-    final customConfigsJson = _prefs!.getStringList(_customConfigsKey) ?? [];
-    
     List<LabelConfig> customConfigs = [];
-    for (String configJson in customConfigsJson) {
-      try {
-        // In a real implementation, you'd use JSON decode
-        // For now, we'll keep it simple with preset configurations
-      } catch (e) {
-        print('Error parsing custom config: $e');
+    
+    try {
+      final customConfigsJson = _prefs!.getStringList(_customConfigsKey) ?? [];
+      for (String configString in customConfigsJson) {
+        try {
+          // Parse pipe-separated string: name|description|width|height|spacing
+          final parts = configString.split('|');
+          if (parts.length >= 4) {
+            final config = LabelConfig(
+              name: parts[0],
+              description: parts[1],
+              widthMm: double.parse(parts[2]),
+              heightMm: double.parse(parts[3]),
+              spacingMm: parts.length > 4 ? double.parse(parts[4]) : 2.0,
+            );
+            customConfigs.add(config);
+          }
+        } catch (e) {
+          print('Error parsing custom config: $e');
+        }
       }
+    } catch (e) {
+      print('Error getting custom configs: $e');
     }
     
     return customConfigs;
@@ -85,12 +99,16 @@ class LabelConfigService {
     await initialize();
     
     try {
-      final customConfigs = await getCustomConfigs();
-      customConfigs.add(config);
+      final customConfigsJson = _prefs!.getStringList(_customConfigsKey) ?? [];
       
-      // Convert to string list for storage
-      final configStrings = customConfigs.map((c) => c.name).toList();
-      await _prefs!.setStringList(_customConfigsKey, configStrings);
+      // Remove existing config with same name
+      customConfigsJson.removeWhere((c) => c.startsWith('${config.name}|'));
+      
+      // Add new config as pipe-separated string
+      final configString = '${config.name}|${config.description}|${config.widthMm}|${config.heightMm}|${config.spacingMm}';
+      customConfigsJson.add(configString);
+      
+      await _prefs!.setStringList(_customConfigsKey, customConfigsJson);
       
       print('Saved custom label config: ${config.name}');
       return true;
@@ -100,13 +118,19 @@ class LabelConfigService {
     }
   }
 
+  /// Check if a custom config name already exists
+  Future<bool> customConfigExists(String name) async {
+    final customConfigs = await getCustomConfigs();
+    return customConfigs.any((config) => config.name == name);
+  }
+
   /// Remove a custom configuration
   Future<bool> removeCustomConfig(String configName) async {
     await initialize();
     
     try {
       final customConfigsJson = _prefs!.getStringList(_customConfigsKey) ?? [];
-      customConfigsJson.removeWhere((config) => config.contains(configName));
+      customConfigsJson.removeWhere((config) => config.startsWith('$configName|'));
       await _prefs!.setStringList(_customConfigsKey, customConfigsJson);
       
       print('Removed custom config: $configName');

@@ -120,6 +120,11 @@ class _LabelSettingsScreenState extends State<LabelSettingsScreen> {
         foregroundColor: Colors.white,
         actions: [
           IconButton(
+            icon: const Icon(Icons.add),
+            onPressed: _showCreateCustomLabelDialog,
+            tooltip: 'Create Custom Label',
+          ),
+          IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: _loadConfigurations,
             tooltip: 'Refresh',
@@ -447,6 +452,279 @@ class _LabelSettingsScreenState extends State<LabelSettingsScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  /// Show create custom label dialog
+  void _showCreateCustomLabelDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => CustomLabelDialog(
+        onSaved: (config) {
+          _saveConfiguration(config);
+          _loadConfigurations(); // Reload to show the new custom config
+        },
+      ),
+    );
+  }
+}
+
+/// Dialog for creating custom label configurations
+class CustomLabelDialog extends StatefulWidget {
+  final Function(LabelConfig) onSaved;
+
+  const CustomLabelDialog({super.key, required this.onSaved});
+
+  @override
+  State<CustomLabelDialog> createState() => _CustomLabelDialogState();
+}
+
+class _CustomLabelDialogState extends State<CustomLabelDialog> {
+  final _formKey = GlobalKey<FormState>();
+  final _nameController = TextEditingController();
+  final _descriptionController = TextEditingController();
+  final _widthController = TextEditingController();
+  final _heightController = TextEditingController();
+  final _spacingController = TextEditingController(text: '2.0');
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _descriptionController.dispose();
+    _widthController.dispose();
+    _heightController.dispose();
+    _spacingController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _saveCustomLabel() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    final name = _nameController.text.trim();
+    final description = _descriptionController.text.trim();
+    final width = double.parse(_widthController.text);
+    final height = double.parse(_heightController.text);
+    final spacing = double.parse(_spacingController.text);
+
+    // Check if name already exists
+    final exists = await LabelConfigService.instance.customConfigExists(name);
+    if (exists) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('A label with this name already exists'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+      return;
+    }
+
+    final config = LabelConfig(
+      name: name,
+      description: description,
+      widthMm: width,
+      heightMm: height,
+      spacingMm: spacing,
+    );
+
+    final success = await LabelConfigService.instance.saveCustomConfig(config);
+    
+    if (success && mounted) {
+      Navigator.of(context).pop();
+      widget.onSaved(config);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Custom label "$name" created successfully!'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } else if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Failed to create custom label'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Row(
+        children: [
+          Icon(Icons.add_box, color: Colors.blue),
+          SizedBox(width: 8),
+          Text('Create Custom Label'),
+        ],
+      ),
+      content: SingleChildScrollView(
+        child: Form(
+          key: _formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextFormField(
+                controller: _nameController,
+                decoration: const InputDecoration(
+                  labelText: 'Label Name *',
+                  hintText: 'e.g., Custom 75x40',
+                  prefixIcon: Icon(Icons.label),
+                ),
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Please enter a label name';
+                  }
+                  if (value.trim().length < 3) {
+                    return 'Name must be at least 3 characters';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
+              
+              TextFormField(
+                controller: _descriptionController,
+                decoration: const InputDecoration(
+                  labelText: 'Description',
+                  hintText: 'Optional description',
+                  prefixIcon: Icon(Icons.description),
+                ),
+              ),
+              const SizedBox(height: 16),
+              
+              Row(
+                children: [
+                  Expanded(
+                    child: TextFormField(
+                      controller: _widthController,
+                      decoration: const InputDecoration(
+                        labelText: 'Width (mm) *',
+                        hintText: '80',
+                        prefixIcon: Icon(Icons.straighten),
+                      ),
+                      keyboardType: TextInputType.number,
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Required';
+                        }
+                        final width = double.tryParse(value);
+                        if (width == null || width <= 0) {
+                          return 'Invalid width';
+                        }
+                        if (width > 80) {
+                          return 'Max 80mm';
+                        }
+                        return null;
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: TextFormField(
+                      controller: _heightController,
+                      decoration: const InputDecoration(
+                        labelText: 'Height (mm) *',
+                        hintText: '50',
+                        prefixIcon: Icon(Icons.height),
+                      ),
+                      keyboardType: TextInputType.number,
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Required';
+                        }
+                        final height = double.tryParse(value);
+                        if (height == null || height <= 0) {
+                          return 'Invalid height';
+                        }
+                        if (height > 50) {
+                          return 'Max 50mm';
+                        }
+                        return null;
+                      },
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              
+              TextFormField(
+                controller: _spacingController,
+                decoration: const InputDecoration(
+                  labelText: 'Gap (mm)',
+                  hintText: '2.0',
+                  prefixIcon: Icon(Icons.space_bar),
+                ),
+                keyboardType: TextInputType.number,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Required';
+                  }
+                  final spacing = double.tryParse(value);
+                  if (spacing == null || spacing < 0) {
+                    return 'Invalid spacing';
+                  }
+                  if (spacing > 10) {
+                    return 'Max 10mm gap';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
+              
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.orange[50],
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.orange[200]!),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.info_outline, color: Colors.orange[700], size: 16),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Size Constraints',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.orange[700],
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    const Text(
+                      '• Maximum width: 80mm\n'
+                      '• Maximum height: 50mm\n'
+                      '• Gap range: 0-10mm',
+                      style: TextStyle(fontSize: 11),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancel'),
+        ),
+        ElevatedButton(
+          onPressed: _saveCustomLabel,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.blue,
+            foregroundColor: Colors.white,
+          ),
+          child: const Text('Create'),
+        ),
+      ],
     );
   }
 }
