@@ -46,8 +46,9 @@ class ShippingLabel {
   }
 
   // Check if label is ready to print
+  // FROM info is optional, only TO info is required
   bool isReadyToPrint() {
-    return fromInfo.isComplete() && toInfo.isComplete();
+    return toInfo.isComplete();
   }
 
   // Get display name for label

@@ -29,6 +29,12 @@ class _LabelEditorScreenState extends State<LabelEditorScreen> {
   void initState() {
     super.initState();
     _label = widget.label;
+    
+    // If this is a new label with pre-filled data (e.g., from AI extraction),
+    // mark it as having changes so it can be saved
+    if (widget.isNew && (!_label.toInfo.isEmpty() || !_label.fromInfo.isEmpty())) {
+      _hasChanges = true;
+    }
   }
 
   void _onFromInfoChanged(ContactInfo fromInfo) {

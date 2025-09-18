@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../models/print_session.dart';
 import '../models/shipping_label.dart';
 import '../services/session_service.dart';
 import '../services/thermal_printer_service.dart';
+import '../services/gemini_ai_service.dart';
 import 'label_editor_screen.dart';
 import 'thermal_printer_settings_screen.dart';
 
@@ -19,6 +21,7 @@ class _SessionDetailScreenState extends State<SessionDetailScreen> {
   late PrintSession _session;
   final SessionService _sessionService = SessionService();
   final ThermalPrinterService _printerService = ThermalPrinterService();
+  final GeminiAiService _geminiService = GeminiAiService();
   bool _isLoading = false;
   bool _isSelectionMode = false;
   final Set<String> _selectedLabelIds = {};
@@ -270,6 +273,47 @@ class _SessionDetailScreenState extends State<SessionDetailScreen> {
   }
 
   Future<void> _addNewLabel() async {
+    // Show dialog to choose between Manual and Auto entry
+    final selectedOption = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Add New Label'),
+        content: const Text('Choose how you want to add the label:'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop('manual'),
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.edit),
+                SizedBox(width: 8),
+                Text('Manual Entry'),
+              ],
+            ),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop('auto'),
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.auto_awesome),
+                SizedBox(width: 8),
+                Text('Auto Process'),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (selectedOption == 'manual') {
+      await _addManualLabel();
+    } else if (selectedOption == 'auto') {
+      await _showAutoProcessDialog();
+    }
+  }
+
+  Future<void> _addManualLabel() async {
     final newLabel = ShippingLabel.empty();
     final result = await Navigator.of(context).push(
       MaterialPageRoute(
@@ -282,6 +326,199 @@ class _SessionDetailScreenState extends State<SessionDetailScreen> {
         _session.addLabel(newLabel);
       });
       await _saveSession();
+    }
+  }
+
+  Future<void> _showAutoProcessDialog() async {
+    final TextEditingController textController = TextEditingController();
+    
+    await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Auto Process Label'),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Paste or enter label information:',
+                style: TextStyle(fontWeight: FontWeight.w500),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Example: Names, addresses, phone numbers from emails, messages, or documents.',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey[600],
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Container(
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.grey),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Column(
+                  children: [
+                    // Textarea
+                    TextField(
+                      controller: textController,
+                      maxLines: 8,
+                      decoration: const InputDecoration(
+                        hintText: 'Paste shipping information here...\n\nExample:\nTO: John Doe\n123 Main St, City, State 12345\n(555) 123-4567\n\nFROM: Jane Smith\n456 Oak Ave, Town, State 67890\n(555) 987-6543',
+                        border: InputBorder.none,
+                        contentPadding: EdgeInsets.all(12),
+                      ),
+                    ),
+                    // Paste icon row
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      decoration: const BoxDecoration(
+                        border: Border(top: BorderSide(color: Colors.grey)),
+                      ),
+                      child: Row(
+                        children: [
+                          IconButton(
+                            onPressed: () async {
+                              try {
+                                final clipboardData = await Clipboard.getData(Clipboard.kTextPlain);
+                                if (clipboardData?.text != null) {
+                                  textController.text = clipboardData!.text!;
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Content pasted from clipboard'),
+                                      backgroundColor: Colors.green,
+                                    ),
+                                  );
+                                } else {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('No text found in clipboard'),
+                                      backgroundColor: Colors.orange,
+                                    ),
+                                  );
+                                }
+                              } catch (e) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('Failed to paste: $e'),
+                                    backgroundColor: Colors.red,
+                                  ),
+                                );
+                              }
+                            },
+                            icon: const Icon(Icons.content_paste),
+                            tooltip: 'Paste from clipboard',
+                          ),
+                          const Spacer(),
+                          const Text(
+                            'Paste content here',
+                            style: TextStyle(color: Colors.grey),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              _processAutoText(textController.text);
+            },
+            child: const Text('Process'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _processAutoText(String text) async {
+    if (text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter some text to process'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      // Show processing message
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Processing with AI...'),
+          backgroundColor: Colors.blue,
+        ),
+      );
+
+      // Process text with Gemini AI
+      final extractedLabel = await _geminiService.extractShippingInfo(text);
+      
+      if (extractedLabel != null) {
+        // Navigate to label editor with pre-filled data
+        final result = await Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) => LabelEditorScreen(label: extractedLabel, isNew: true),
+          ),
+        );
+
+        if (result == true) {
+          setState(() {
+            _session.addLabel(extractedLabel);
+          });
+          await _saveSession();
+          
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Label extracted and added successfully!'),
+                backgroundColor: Colors.green,
+              ),
+            );
+          }
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Could not extract shipping information from the text. Please try manual entry.'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error processing text: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 

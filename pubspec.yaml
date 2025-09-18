@@ -30,6 +30,9 @@ dependencies:
   shared_preferences: ^2.2.0      # Key-value storage
   sqflite: ^2.2.8                # SQLite database for complex data
   
+  # Network & API
+  http: ^1.1.0                    # HTTP client for API requests
+  
   # Contact & Address Management - TEMPORARILY REMOVED
   # contacts_service: ^0.6.3        # Access device contacts - has namespace issues
   
