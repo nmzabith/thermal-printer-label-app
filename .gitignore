@@ -42,3 +42,34 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Environment variables and secrets
+.env
+.env.local
+.env.*.local
+*.env
+api_keys.dart
+secrets.dart
+config/secrets.dart
+lib/config/api_keys.dart
+lib/config/secrets.dart
+
+# API Keys and Credentials
+**/api_key.txt
+**/credentials.json
+**/google-services.json
+**/GoogleService-Info.plist
+*.keystore
+*.jks
+key.properties
+
+# Local storage and user data
+*.db
+*.sqlite
+*.sqlite3
+logos/
+
+# Build outputs
+*.apk
+*.aab
+*.ipa
