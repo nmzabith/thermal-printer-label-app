@@ -1,28 +1,34 @@
+import 'logo_config.dart';
+
 class ContactInfo {
   String name;
   String address;
   String phoneNumber1;
   String phoneNumber2;
+  LogoConfig? logoConfig; // Logo configuration for this contact (mainly for FROM contacts)
 
   ContactInfo({
     required this.name,
     this.address = '',                // Make address optional with empty default
     required this.phoneNumber1,
     this.phoneNumber2 = '',
+    this.logoConfig,
   });
 
   ContactInfo.empty()
       : name = '',
         address = '',
         phoneNumber1 = '',
-        phoneNumber2 = '';
+        phoneNumber2 = '',
+        logoConfig = null;
 
   // Copy constructor
   ContactInfo.from(ContactInfo other)
       : name = other.name,
         address = other.address,
         phoneNumber1 = other.phoneNumber1,
-        phoneNumber2 = other.phoneNumber2;
+        phoneNumber2 = other.phoneNumber2,
+        logoConfig = other.logoConfig != null ? LogoConfig.from(other.logoConfig!) : null;
 
   // Convert to Map for storage
   Map<String, dynamic> toMap() {
@@ -31,6 +37,7 @@ class ContactInfo {
       'address': address,
       'phoneNumber1': phoneNumber1,
       'phoneNumber2': phoneNumber2,
+      'logoConfig': logoConfig?.toMap(),
     };
   }
 
@@ -41,6 +48,7 @@ class ContactInfo {
       address: map['address'] ?? '',
       phoneNumber1: map['phoneNumber1'] ?? map['phoneNumber'] ?? '', // Backward compatibility
       phoneNumber2: map['phoneNumber2'] ?? '',
+      logoConfig: map['logoConfig'] != null ? LogoConfig.fromMap(map['logoConfig']) : null,
     );
   }
 
@@ -48,6 +56,9 @@ class ContactInfo {
   bool isEmpty() {
     return name.isEmpty && address.isEmpty && phoneNumber1.isEmpty && phoneNumber2.isEmpty;
   }
+
+  // Check if contact has a logo configured
+  bool get hasLogo => logoConfig != null && logoConfig!.hasLogo;
 
   // Check if contact is complete (at least one phone number required)
   bool isComplete() {
@@ -72,7 +83,7 @@ class ContactInfo {
 
   @override
   String toString() {
-    return 'ContactInfo(name: $name, address: $address, phoneNumber1: $phoneNumber1, phoneNumber2: $phoneNumber2)';
+    return 'ContactInfo(name: $name, address: $address, phoneNumber1: $phoneNumber1, phoneNumber2: $phoneNumber2, hasLogo: $hasLogo)';
   }
 
   @override
@@ -82,11 +93,12 @@ class ContactInfo {
         other.name == name &&
         other.address == address &&
         other.phoneNumber1 == phoneNumber1 &&
-        other.phoneNumber2 == phoneNumber2;
+        other.phoneNumber2 == phoneNumber2 &&
+        other.logoConfig == logoConfig;
   }
 
   @override
   int get hashCode {
-    return name.hashCode ^ address.hashCode ^ phoneNumber1.hashCode ^ phoneNumber2.hashCode;
+    return name.hashCode ^ address.hashCode ^ phoneNumber1.hashCode ^ phoneNumber2.hashCode ^ logoConfig.hashCode;
   }
 }

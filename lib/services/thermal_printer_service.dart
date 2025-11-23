@@ -5,8 +5,11 @@ import 'package:permission_handler/permission_handler.dart';
 import '../models/shipping_label.dart';
 import '../models/label_config.dart';
 import '../models/font_settings.dart';
+import '../models/logo_config.dart';
+import '../models/logo_data.dart';
 import 'label_config_service.dart';
 import 'font_settings_service.dart';
+import 'logo_service.dart';
 
 /// Thermal Printer Service using bluetooth_print_plus with TSC/TSPL commands
 /// Designed specifically for XPrinter XP-365B thermal label printer
@@ -881,6 +884,11 @@ class ThermalPrinterService {
           commands.add('TEXT 20,$yPos,${effectiveSettings.getTscFontCommand('phone')},"Tracking: ${label.id.substring(label.id.length - 8)}"');
         }
       }
+
+      // Add logo if enabled for this label
+      if (label.includeLogo) {
+        await _addLogoToCommands(commands, label, labelConfig);
+      }
       
       // Print command
       commands.add('PRINT 1,1');
@@ -930,6 +938,121 @@ class ThermalPrinterService {
     } catch (e) {
       print('Error printing single shipping label: $e');
       return false;
+    }
+  }
+
+  /// Add logo to TSC commands for label printing
+  /// Places logo in the bottom right corner of the label
+  Future<void> _addLogoToCommands(List<String> commands, ShippingLabel label, LabelConfig labelConfig) async {
+    try {
+      final logoService = LogoService();
+      LogoConfig? logoConfig;
+
+      // Determine which logo to use:
+      // 1. First check if FROM contact has a specific logo
+      if (label.fromInfo.hasLogo) {
+        logoConfig = label.fromInfo.logoConfig!;
+      } else {
+        // 2. Fall back to default logo
+        logoConfig = await logoService.getDefaultLogoConfig();
+      }
+
+      // If no logo is configured or enabled, skip
+      if (logoConfig == null || !logoConfig.shouldShowLogo) {
+        print('No logo configured or logo disabled - skipping logo addition');
+        return;
+      }
+
+      // Process logo for thermal printing
+      final logoData = await logoService.processLogoForPrinting(logoConfig);
+      if (logoData == null) {
+        print('Failed to process logo for printing - skipping logo addition');
+        return;
+      }
+
+      // Calculate logo position (bottom right corner)
+      final labelWidthDots = (labelConfig.widthMm * 8).toInt(); // Convert mm to dots (203 DPI ≈ 8 dots/mm)
+      final labelHeightDots = (labelConfig.heightMm * 8).toInt();
+      final logoWidthDots = (logoConfig.width * 8).toInt();
+      final logoHeightDots = (logoConfig.height * 8).toInt();
+
+      // Position logo in bottom right corner with margin
+      const marginDots = 20; // 2.5mm margin
+      final logoX = labelWidthDots - logoWidthDots - marginDots;
+      final logoY = labelHeightDots - logoHeightDots - marginDots;
+
+      // Ensure logo doesn't go outside label bounds
+      if (logoX < 0 || logoY < 0) {
+        print('Logo too large for label - skipping logo addition');
+        return;
+      }
+
+      // Add TSC bitmap command for logo
+      // For TSC printers, we need to use BITMAP command
+      // Format: BITMAP x,y,width,height,mode,image_data
+      
+      // Convert logo data to monochrome bitmap format suitable for TSC
+      final bitmapData = _convertLogoToBitmap(logoData.imageData, logoWidthDots, logoHeightDots);
+      
+      if (bitmapData.isNotEmpty) {
+        // TSC BITMAP command - mode 0 for overwrite
+        commands.add('BITMAP $logoX,$logoY,$logoWidthDots,$logoHeightDots,0,${bitmapData}');
+        print('Added logo to label at position ($logoX,$logoY) with size ${logoWidthDots}x${logoHeightDots} dots');
+      } else {
+        print('Failed to convert logo to bitmap format - skipping logo addition');
+      }
+
+    } catch (e) {
+      print('Error adding logo to label: $e');
+      // Don't throw - continue printing without logo
+    }
+  }
+
+  /// Convert logo image data to TSC-compatible bitmap format
+  /// Returns hex string representation of monochrome bitmap
+  String _convertLogoToBitmap(Uint8List imageData, int widthDots, int heightDots) {
+    try {
+      // For TSC printers, we need monochrome bitmap data
+      // Each bit represents one dot (1=black, 0=white)
+      // Data should be organized row by row, with each row padded to byte boundary
+      
+      final bytesPerRow = ((widthDots + 7) ~/ 8); // Round up to next byte
+      final totalBytes = bytesPerRow * heightDots;
+      final bitmapBytes = List<int>.filled(totalBytes, 0);
+
+      // Convert image data to monochrome bitmap
+      // This is a simplified conversion - for better results, use image processing
+      for (int y = 0; y < heightDots && y * 4 < imageData.length; y++) {
+        for (int x = 0; x < widthDots && (y * widthDots + x) * 4 < imageData.length; x++) {
+          final pixelIndex = (y * widthDots + x) * 4; // Assuming RGBA format
+          
+          if (pixelIndex + 2 < imageData.length) {
+            // Get RGB values (ignore alpha for now)
+            final r = imageData[pixelIndex];
+            final g = imageData[pixelIndex + 1];
+            final b = imageData[pixelIndex + 2];
+            
+            // Convert to grayscale and threshold
+            final gray = ((r + g + b) / 3).round();
+            final isBlack = gray < 128; // Threshold at 50%
+            
+            if (isBlack) {
+              final byteIndex = y * bytesPerRow + (x ~/ 8);
+              final bitIndex = 7 - (x % 8); // MSB first
+              if (byteIndex < bitmapBytes.length) {
+                bitmapBytes[byteIndex] |= (1 << bitIndex);
+              }
+            }
+          }
+        }
+      }
+
+      // Convert bytes to hex string
+      return bitmapBytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join('').toUpperCase();
+      
+    } catch (e) {
+      print('Error converting logo to bitmap: $e');
+      return '';
     }
   }
 

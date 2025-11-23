@@ -5,12 +5,14 @@ class ShippingLabel {
   ContactInfo fromInfo;
   ContactInfo toInfo;
   DateTime createdAt;
+  bool includeLogo; // Whether to include logo on this specific label
 
   ShippingLabel({
     required this.id,
     required this.fromInfo,
     required this.toInfo,
     DateTime? createdAt,
+    this.includeLogo = false, // Default to false (unticked)
   }) : createdAt = createdAt ?? DateTime.now();
 
   // Create empty label
@@ -18,7 +20,8 @@ class ShippingLabel {
       : id = _generateId(),
         fromInfo = ContactInfo.empty(),
         toInfo = ContactInfo.empty(),
-        createdAt = DateTime.now();
+        createdAt = DateTime.now(),
+        includeLogo = false;
 
   // Generate unique ID
   static String _generateId() {
@@ -32,6 +35,7 @@ class ShippingLabel {
       'fromInfo': fromInfo.toMap(),
       'toInfo': toInfo.toMap(),
       'createdAt': createdAt.toIso8601String(),
+      'includeLogo': includeLogo,
     };
   }
 
@@ -42,6 +46,7 @@ class ShippingLabel {
       fromInfo: ContactInfo.fromMap(map['fromInfo'] ?? {}),
       toInfo: ContactInfo.fromMap(map['toInfo'] ?? {}),
       createdAt: DateTime.parse(map['createdAt']),
+      includeLogo: map['includeLogo'] ?? false,
     );
   }
 

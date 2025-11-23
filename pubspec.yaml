@@ -41,6 +41,7 @@ dependencies:
   qr_flutter: ^4.1.0              # Generate QR codes for labels
   image: ^3.3.0                   # Image processing utilities
   file_picker: ^6.1.1             # File picker for custom icons/images
+  path_provider: ^2.1.1           # Access device storage paths
   
   # Utility Packages
   uuid: ^3.0.7                    # Generate unique IDs

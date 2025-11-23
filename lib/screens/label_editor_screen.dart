@@ -179,6 +179,72 @@ class _LabelEditorScreenState extends State<LabelEditorScreen> {
                   isFromContact: false, // No auto-complete for TO
                 ),
 
+                const SizedBox(height: 16),
+
+                // Logo Settings Card
+                Card(
+                  margin: const EdgeInsets.all(8.0),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(Icons.image, color: Colors.blue),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Logo Settings',
+                              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        SwitchListTile(
+                          title: const Text('Include Logo'),
+                          subtitle: const Text('Add logo to the bottom right corner'),
+                          value: _label.includeLogo,
+                          onChanged: (value) {
+                            setState(() {
+                              _label.includeLogo = value;
+                              _hasChanges = true;
+                            });
+                          },
+                          secondary: const Icon(Icons.image_outlined),
+                          contentPadding: EdgeInsets.zero,
+                        ),
+                        if (_label.includeLogo) ...[
+                          const SizedBox(height: 8),
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.blue.shade50,
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: Colors.blue.shade200),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(Icons.info_outline, 
+                                     color: Colors.blue.shade700, 
+                                     size: 20),
+                                const SizedBox(width: 8),
+                                const Expanded(
+                                  child: Text(
+                                    'Logo will be added from your default logo settings or FROM contact logo configuration.',
+                                    style: TextStyle(fontSize: 13),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
+
                 const SizedBox(height: 24),
 
                 // Action Buttons

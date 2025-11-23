@@ -8,6 +8,7 @@ import 'from_contacts_manager_screen.dart';
 import 'font_settings_screen.dart';
 import 'label_designer_list_screen.dart';
 import 'material3_showcase_screen.dart';
+import 'logo_manager_screen.dart';
 
 class SessionsListScreen extends StatefulWidget {
   const SessionsListScreen({super.key});
@@ -177,6 +178,13 @@ class _SessionsListScreenState extends State<SessionsListScreen> {
                     ),
                   );
                   break;
+                case 'logo_manager':
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => const LogoManagerScreen(),
+                    ),
+                  );
+                  break;
                 case 'label_designer':
                   Navigator.of(context).push(
                     MaterialPageRoute(
@@ -201,6 +209,16 @@ class _SessionsListScreenState extends State<SessionsListScreen> {
                     Icon(Icons.contact_phone),
                     SizedBox(width: 8),
                     Text('FROM Contacts'),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'logo_manager',
+                child: Row(
+                  children: [
+                    Icon(Icons.image),
+                    SizedBox(width: 8),
+                    Text('Logo Manager'),
                   ],
                 ),
               ),
