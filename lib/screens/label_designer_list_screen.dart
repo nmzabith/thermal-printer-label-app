@@ -3,19 +3,22 @@ import '../models/custom_label_design.dart';
 import '../models/label_config.dart';
 import '../services/custom_label_design_service.dart';
 import '../services/label_config_service.dart';
+import '../widgets/material3_components.dart';
 import 'visual_label_designer_screen.dart';
 
 class LabelDesignerListScreen extends StatefulWidget {
   const LabelDesignerListScreen({super.key});
 
   @override
-  State<LabelDesignerListScreen> createState() => _LabelDesignerListScreenState();
+  State<LabelDesignerListScreen> createState() =>
+      _LabelDesignerListScreenState();
 }
 
 class _LabelDesignerListScreenState extends State<LabelDesignerListScreen> {
-  final CustomLabelDesignService _designService = CustomLabelDesignService.instance;
+  final CustomLabelDesignService _designService =
+      CustomLabelDesignService.instance;
   final LabelConfigService _configService = LabelConfigService.instance;
-  
+
   List<CustomLabelDesign> _designs = [];
   LabelConfig? _currentConfig;
   bool _isLoading = true;
@@ -34,7 +37,7 @@ class _LabelDesignerListScreenState extends State<LabelDesignerListScreen> {
     try {
       final designs = await _designService.getAllDesigns();
       final config = await _configService.getCurrentConfig();
-      
+
       setState(() {
         _designs = designs;
         _currentConfig = config;
@@ -54,11 +57,14 @@ class _LabelDesignerListScreenState extends State<LabelDesignerListScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Label Designer'),
-        backgroundColor: Colors.purple,
-        foregroundColor: Colors.white,
+        backgroundColor: colorScheme.surface,
+        scrolledUnderElevation: 3,
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
@@ -74,28 +80,30 @@ class _LabelDesignerListScreenState extends State<LabelDesignerListScreen> {
                 // Header info
                 Container(
                   padding: const EdgeInsets.all(16),
-                  color: Colors.purple.shade50,
+                  color: colorScheme.surfaceVariant.withOpacity(0.3),
                   child: Row(
                     children: [
-                      const Icon(Icons.info_outline, color: Colors.purple),
-                      const SizedBox(width: 8),
+                      Icon(Icons.info_outline, color: colorScheme.primary),
+                      const SizedBox(width: 12),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text(
+                            Text(
                               'Custom Label Designs',
-                              style: TextStyle(
-                                fontSize: 16,
+                              style: textTheme.titleMedium?.copyWith(
+                                color: colorScheme.primary,
                                 fontWeight: FontWeight.bold,
-                                color: Colors.purple,
                               ),
                             ),
+                            const SizedBox(height: 4),
                             Text(
                               _currentConfig != null
                                   ? 'Current Label: ${_currentConfig!.name} (${_currentConfig!.widthMm}×${_currentConfig!.heightMm}mm)'
                                   : 'No label configuration loaded',
-                              style: const TextStyle(color: Colors.purple),
+                              style: textTheme.bodyMedium?.copyWith(
+                                color: colorScheme.onSurfaceVariant,
+                              ),
                             ),
                           ],
                         ),
@@ -103,7 +111,7 @@ class _LabelDesignerListScreenState extends State<LabelDesignerListScreen> {
                     ],
                   ),
                 ),
-                
+
                 // Designs list
                 Expanded(
                   child: _designs.isEmpty
@@ -114,8 +122,6 @@ class _LabelDesignerListScreenState extends State<LabelDesignerListScreen> {
             ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _createNewDesign,
-        backgroundColor: Colors.purple,
-        foregroundColor: Colors.white,
         icon: const Icon(Icons.add),
         label: const Text('New Design'),
       ),
@@ -123,42 +129,39 @@ class _LabelDesignerListScreenState extends State<LabelDesignerListScreen> {
   }
 
   Widget _buildEmptyState() {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(
             Icons.design_services,
-            size: 64,
-            color: Colors.grey.shade400,
+            size: 80,
+            color: colorScheme.surfaceVariant,
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 24),
           Text(
             'No Custom Designs Yet',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: Colors.grey.shade600,
+            style: textTheme.headlineSmall?.copyWith(
+              color: colorScheme.onSurfaceVariant,
             ),
           ),
           const SizedBox(height: 8),
           Text(
             'Create your first custom label design\nwith drag-and-drop functionality',
             textAlign: TextAlign.center,
-            style: TextStyle(
-              color: Colors.grey.shade500,
+            style: textTheme.bodyMedium?.copyWith(
+              color: colorScheme.onSurfaceVariant,
             ),
           ),
-          const SizedBox(height: 24),
-          ElevatedButton.icon(
+          const SizedBox(height: 32),
+          Material3Components.enhancedButton(
             onPressed: _createNewDesign,
             icon: const Icon(Icons.add),
-            label: const Text('Create Design'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.purple,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-            ),
+            label: 'Create Design',
+            isPrimary: true,
           ),
         ],
       ),
@@ -166,12 +169,16 @@ class _LabelDesignerListScreenState extends State<LabelDesignerListScreen> {
   }
 
   Widget _buildDesignsList() {
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
+    return ListView.separated(
+      padding: const EdgeInsets.symmetric(vertical: 20),
       itemCount: _designs.length,
+      separatorBuilder: (context, index) => const SizedBox(height: 12),
       itemBuilder: (context, index) {
         final design = _designs[index];
-        return _buildDesignCard(design);
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: _buildDesignCard(design),
+        );
       },
     );
   }
@@ -181,159 +188,175 @@ class _LabelDesignerListScreenState extends State<LabelDesignerListScreen> {
       future: _designService.getActiveDesignId(),
       builder: (context, snapshot) {
         final isActive = snapshot.data == design.id;
-        
-        return Card(
-          margin: const EdgeInsets.only(bottom: 12),
-          elevation: isActive ? 4 : 2,
-          child: Container(
-            decoration: isActive
-                ? BoxDecoration(
-                    borderRadius: BorderRadius.circular(4),
-                    border: Border.all(color: Colors.purple, width: 2),
-                  )
-                : null,
-            child: ListTile(
-              contentPadding: const EdgeInsets.all(16),
-              leading: Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: isActive ? Colors.purple : Colors.blue,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(
-                  isActive ? Icons.check_circle : Icons.design_services,
-                  color: Colors.white,
-                  size: 24,
-                ),
-              ),
-              title: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      design.name,
-                      style: TextStyle(
-                        fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
-                        fontSize: 16,
-                      ),
-                    ),
-                  ),
-                  if (isActive)
+        final colorScheme = Theme.of(context).colorScheme;
+        final textTheme = Theme.of(context).textTheme;
+
+        return Material3Components.enhancedCard(
+          isSelected: isActive,
+          onTap: () => _editDesign(design),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      width: 48,
+                      height: 48,
                       decoration: BoxDecoration(
-                        color: Colors.purple,
+                        color: isActive
+                            ? colorScheme.primaryContainer
+                            : colorScheme.surfaceVariant,
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: const Text(
-                        'ACTIVE',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                        ),
+                      child: Icon(
+                        isActive ? Icons.check_circle : Icons.design_services,
+                        color: isActive
+                            ? colorScheme.primary
+                            : colorScheme.onSurfaceVariant,
+                        size: 24,
                       ),
                     ),
-                ],
-              ),
-              subtitle: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(height: 4),
-                  if (design.description.isNotEmpty)
-                    Text(design.description),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Icon(Icons.label, size: 16, color: Colors.grey.shade600),
-                      const SizedBox(width: 4),
-                      Text(
-                        '${design.labelConfig.name}',
-                        style: TextStyle(
-                          color: Colors.grey.shade600,
-                          fontSize: 12,
-                        ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  design.name,
+                                  style: textTheme.titleMedium?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                              if (isActive)
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: colorScheme.primary,
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Text(
+                                    'ACTIVE',
+                                    style: textTheme.labelSmall?.copyWith(
+                                      color: colorScheme.onPrimary,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          if (design.description.isNotEmpty)
+                            Text(
+                              design.description,
+                              style: textTheme.bodyMedium?.copyWith(
+                                color: colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                          const SizedBox(height: 8),
+                          Row(
+                            children: [
+                              Icon(Icons.label_outline,
+                                  size: 16, color: colorScheme.outline),
+                              const SizedBox(width: 4),
+                              Text(
+                                design.labelConfig.name,
+                                style: textTheme.bodySmall?.copyWith(
+                                  color: colorScheme.outline,
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              Icon(Icons.widgets_outlined,
+                                  size: 16, color: colorScheme.outline),
+                              const SizedBox(width: 4),
+                              Text(
+                                '${design.elements.length} elements',
+                                style: textTheme.bodySmall?.copyWith(
+                                  color: colorScheme.outline,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Modified: ${_formatDate(design.lastModified)}',
+                            style: textTheme.bodySmall?.copyWith(
+                              color: colorScheme.outline,
+                            ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(width: 16),
-                      Icon(Icons.widgets, size: 16, color: Colors.grey.shade600),
-                      const SizedBox(width: 4),
-                      Text(
-                        '${design.elements.length} elements',
-                        style: TextStyle(
-                          color: Colors.grey.shade600,
-                          fontSize: 12,
+                    ),
+                    PopupMenuButton<String>(
+                      icon: Icon(Icons.more_vert,
+                          color: colorScheme.onSurfaceVariant),
+                      itemBuilder: (context) => [
+                        const PopupMenuItem(
+                          value: 'edit',
+                          child: Row(
+                            children: [
+                              Icon(Icons.edit_outlined),
+                              SizedBox(width: 8),
+                              Text('Edit'),
+                            ],
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Modified: ${_formatDate(design.lastModified)}',
-                    style: TextStyle(
-                      color: Colors.grey.shade500,
-                      fontSize: 11,
-                    ),
-                  ),
-                ],
-              ),
-              trailing: PopupMenuButton<String>(
-                itemBuilder: (context) => [
-                  const PopupMenuItem(
-                    value: 'edit',
-                    child: Row(
-                      children: [
-                        Icon(Icons.edit),
-                        SizedBox(width: 8),
-                        Text('Edit'),
+                        PopupMenuItem(
+                          value: 'activate',
+                          enabled: !isActive,
+                          child: const Row(
+                            children: [
+                              Icon(Icons.check_circle_outline),
+                              SizedBox(width: 8),
+                              Text('Set Active'),
+                            ],
+                          ),
+                        ),
+                        const PopupMenuItem(
+                          value: 'duplicate',
+                          child: Row(
+                            children: [
+                              Icon(Icons.copy_rounded),
+                              SizedBox(width: 8),
+                              Text('Duplicate'),
+                            ],
+                          ),
+                        ),
+                        const PopupMenuItem(
+                          value: 'export',
+                          child: Row(
+                            children: [
+                              Icon(Icons.file_download_outlined),
+                              SizedBox(width: 8),
+                              Text('Export'),
+                            ],
+                          ),
+                        ),
+                        const PopupMenuDivider(),
+                        PopupMenuItem(
+                          value: 'delete',
+                          child: Row(
+                            children: [
+                              Icon(Icons.delete_outline,
+                                  color: colorScheme.error),
+                              const SizedBox(width: 8),
+                              Text('Delete',
+                                  style: TextStyle(color: colorScheme.error)),
+                            ],
+                          ),
+                        ),
                       ],
+                      onSelected: (value) => _handleMenuAction(value, design),
                     ),
-                  ),
-                  PopupMenuItem(
-                    value: 'activate',
-                    enabled: !isActive,
-                    child: const Row(
-                      children: [
-                        Icon(Icons.check_circle),
-                        SizedBox(width: 8),
-                        Text('Set Active'),
-                      ],
-                    ),
-                  ),
-                  const PopupMenuItem(
-                    value: 'duplicate',
-                    child: Row(
-                      children: [
-                        Icon(Icons.copy),
-                        SizedBox(width: 8),
-                        Text('Duplicate'),
-                      ],
-                    ),
-                  ),
-                  const PopupMenuItem(
-                    value: 'export',
-                    child: Row(
-                      children: [
-                        Icon(Icons.file_download),
-                        SizedBox(width: 8),
-                        Text('Export'),
-                      ],
-                    ),
-                  ),
-                  const PopupMenuDivider(),
-                  const PopupMenuItem(
-                    value: 'delete',
-                    child: Row(
-                      children: [
-                        Icon(Icons.delete, color: Colors.red),
-                        SizedBox(width: 8),
-                        Text('Delete', style: TextStyle(color: Colors.red)),
-                      ],
-                    ),
-                  ),
-                ],
-                onSelected: (value) => _handleMenuAction(value, design),
-              ),
-              onTap: () => _editDesign(design),
+                  ],
+                ),
+              ],
             ),
           ),
         );
@@ -344,7 +367,7 @@ class _LabelDesignerListScreenState extends State<LabelDesignerListScreen> {
   String _formatDate(DateTime date) {
     final now = DateTime.now();
     final difference = now.difference(date);
-    
+
     if (difference.inDays > 0) {
       return '${difference.inDays} days ago';
     } else if (difference.inHours > 0) {
@@ -377,13 +400,15 @@ class _LabelDesignerListScreenState extends State<LabelDesignerListScreen> {
   }
 
   void _editDesign(CustomLabelDesign design) {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => VisualLabelDesignerScreen(
-          initialDesign: design,
-        ),
-      ),
-    ).then((_) => _loadData());
+    Navigator.of(context)
+        .push(
+          MaterialPageRoute(
+            builder: (context) => VisualLabelDesignerScreen(
+              initialDesign: design,
+            ),
+          ),
+        )
+        .then((_) => _loadData());
   }
 
   Future<void> _setActiveDesign(CustomLabelDesign design) async {
@@ -401,7 +426,8 @@ class _LabelDesignerListScreenState extends State<LabelDesignerListScreen> {
   }
 
   Future<void> _duplicateDesign(CustomLabelDesign design) async {
-    final name = await _showNameDialog('Duplicate Design', '${design.name} Copy');
+    final name =
+        await _showNameDialog('Duplicate Design', '${design.name} Copy');
     if (name != null) {
       await _designService.duplicateDesign(design, name);
       _loadData();
@@ -433,7 +459,8 @@ class _LabelDesignerListScreenState extends State<LabelDesignerListScreen> {
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            style: TextButton.styleFrom(
+                foregroundColor: Theme.of(context).colorScheme.error),
             child: const Text('Delete'),
           ),
         ],
@@ -465,15 +492,18 @@ class _LabelDesignerListScreenState extends State<LabelDesignerListScreen> {
 
     final name = await _showNameDialog('New Design', 'My Custom Design');
     if (name != null) {
-      Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (context) => VisualLabelDesignerScreen(
-            labelConfig: _currentConfig,
-            initialDesign: CustomLabelDesign.createDefault(_currentConfig!)
-                .copyWith(name: name),
-          ),
-        ),
-      ).then((_) => _loadData());
+      if (!mounted) return;
+      Navigator.of(context)
+          .push(
+            MaterialPageRoute(
+              builder: (context) => VisualLabelDesignerScreen(
+                labelConfig: _currentConfig,
+                initialDesign: CustomLabelDesign.createDefault(_currentConfig!)
+                    .copyWith(name: name),
+              ),
+            ),
+          )
+          .then((_) => _loadData());
     }
   }
 
@@ -483,13 +513,10 @@ class _LabelDesignerListScreenState extends State<LabelDesignerListScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: Text(title),
-        content: TextFormField(
+        content: Material3Components.enhancedTextField(
+          label: 'Design Name',
           initialValue: initialValue,
           onChanged: (value) => name = value,
-          decoration: const InputDecoration(
-            labelText: 'Design Name',
-            border: OutlineInputBorder(),
-          ),
         ),
         actions: [
           TextButton(
@@ -497,7 +524,8 @@ class _LabelDesignerListScreenState extends State<LabelDesignerListScreen> {
             child: const Text('Cancel'),
           ),
           TextButton(
-            onPressed: () => Navigator.of(context).pop(name.trim().isEmpty ? null : name.trim()),
+            onPressed: () => Navigator.of(context)
+                .pop(name.trim().isEmpty ? null : name.trim()),
             child: const Text('Create'),
           ),
         ],

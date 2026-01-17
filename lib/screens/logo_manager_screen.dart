@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:typed_data';
 import '../models/logo_config.dart';
 import '../services/logo_service.dart';
+import '../widgets/material3_components.dart';
 
 class LogoManagerScreen extends StatefulWidget {
   const LogoManagerScreen({super.key});
@@ -237,15 +238,18 @@ class _LogoManagerScreenState extends State<LogoManagerScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Logo Manager'),
-        backgroundColor: Colors.blue,
-        foregroundColor: Colors.white,
+        backgroundColor: colorScheme.surface,
+        scrolledUnderElevation: 3,
         actions: [
           if (_currentLogoConfig.hasLogo)
             IconButton(
-              icon: const Icon(Icons.settings),
+              icon: const Icon(Icons.settings_outlined),
               onPressed: _showLogoSettings,
               tooltip: 'Logo Settings',
             ),
@@ -264,17 +268,17 @@ class _LogoManagerScreenState extends State<LogoManagerScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Info Card
-                  Card(
+                  Material3Components.enhancedCard(
                     child: Padding(
                       padding: const EdgeInsets.all(16),
                       child: Row(
                         children: [
-                          Icon(Icons.info_outline, color: Colors.blue.shade700),
+                          Icon(Icons.info_outline, color: colorScheme.primary),
                           const SizedBox(width: 12),
-                          const Expanded(
+                          Expanded(
                             child: Text(
                               'Configure your default logo that will appear on the bottom right corner of your shipping labels.',
-                              style: TextStyle(fontSize: 14),
+                              style: textTheme.bodyMedium,
                             ),
                           ),
                         ],
@@ -284,10 +288,10 @@ class _LogoManagerScreenState extends State<LogoManagerScreen> {
                   const SizedBox(height: 24),
 
                   // Current Logo Section
-                  const Text(
+                  Text(
                     'Current Logo',
-                    style: TextStyle(
-                      fontSize: 18,
+                    style: textTheme.titleLarge?.copyWith(
+                      color: colorScheme.onSurface,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -298,9 +302,9 @@ class _LogoManagerScreenState extends State<LogoManagerScreen> {
                     width: double.infinity,
                     height: 200,
                     decoration: BoxDecoration(
-                      border: Border.all(color: Colors.grey.shade300),
-                      borderRadius: BorderRadius.circular(8),
-                      color: Colors.grey.shade50,
+                      border: Border.all(color: colorScheme.outlineVariant),
+                      borderRadius: BorderRadius.circular(16),
+                      color: colorScheme.surfaceVariant.withOpacity(0.3),
                     ),
                     child: _currentLogoConfig.hasLogo
                         ? _buildLogoPreview()
@@ -310,7 +314,7 @@ class _LogoManagerScreenState extends State<LogoManagerScreen> {
 
                   // Logo Info
                   if (_currentLogoConfig.hasLogo) ...[
-                    Card(
+                    Material3Components.enhancedCard(
                       child: Padding(
                         padding: const EdgeInsets.all(16),
                         child: Column(
@@ -318,18 +322,17 @@ class _LogoManagerScreenState extends State<LogoManagerScreen> {
                           children: [
                             Row(
                               children: [
-                                const Icon(Icons.image, color: Colors.blue),
+                                Icon(Icons.image, color: colorScheme.secondary),
                                 const SizedBox(width: 8),
-                                const Text(
+                                Text(
                                   'Logo Information',
-                                  style: TextStyle(
-                                    fontSize: 16,
+                                  style: textTheme.titleMedium?.copyWith(
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
                               ],
                             ),
-                            const SizedBox(height: 12),
+                            const SizedBox(height: 16),
                             _buildInfoRow(
                                 'File Name',
                                 _currentLogoConfig.originalFileName ??
@@ -350,7 +353,7 @@ class _LogoManagerScreenState extends State<LogoManagerScreen> {
                     const SizedBox(height: 16),
 
                     // Enable/Disable Toggle
-                    Card(
+                    Material3Components.enhancedCard(
                       child: SwitchListTile(
                         title: const Text('Enable Logo by Default'),
                         subtitle: const Text(
@@ -363,23 +366,23 @@ class _LogoManagerScreenState extends State<LogoManagerScreen> {
                                     .copyWith(isEnabled: value);
                                 _saveLogo(updatedConfig);
                               },
-                        secondary: const Icon(Icons.visibility),
+                        secondary: const Icon(Icons.visibility_outlined),
                       ),
                     ),
                     const SizedBox(height: 24),
                   ],
 
                   // Thanks Message Section (always visible)
-                  const Text(
+                  Text(
                     'Thanks Message',
-                    style: TextStyle(
-                      fontSize: 18,
+                    style: textTheme.titleLarge?.copyWith(
+                      color: colorScheme.onSurface,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                   const SizedBox(height: 16),
 
-                  Card(
+                  Material3Components.enhancedCard(
                     child: Padding(
                       padding: const EdgeInsets.all(16),
                       child: Column(
@@ -387,18 +390,17 @@ class _LogoManagerScreenState extends State<LogoManagerScreen> {
                         children: [
                           Row(
                             children: [
-                              const Icon(Icons.favorite, color: Colors.pink),
+                              Icon(Icons.favorite, color: Colors.pink.shade300),
                               const SizedBox(width: 8),
-                              const Text(
+                              Text(
                                 'Message at Bottom of Labels',
-                                style: TextStyle(
-                                  fontSize: 16,
+                                style: textTheme.titleMedium?.copyWith(
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
                             ],
                           ),
-                          const SizedBox(height: 16),
+                          const SizedBox(height: 8),
                           SwitchListTile(
                             title: const Text('Enable Thanks Message'),
                             subtitle: const Text(
@@ -413,24 +415,15 @@ class _LogoManagerScreenState extends State<LogoManagerScreen> {
                                     );
                                     _saveLogo(updatedConfig);
                                   },
-                            secondary: const Icon(Icons.message),
+                            secondary: const Icon(Icons.message_outlined),
                             contentPadding: EdgeInsets.zero,
                           ),
                           if (_currentLogoConfig.thanksMessageEnabled) ...[
                             const SizedBox(height: 16),
-                            TextField(
-                              controller: TextEditingController(
-                                text: _currentLogoConfig.thanksMessage,
-                              ),
-                              decoration: const InputDecoration(
-                                labelText: 'Message',
-                                hintText: 'Thanks for shopping with us.',
-                                border: OutlineInputBorder(),
-                                helperText:
-                                    'This message will be centered at the bottom of each label',
-                              ),
-                              maxLines: 2,
-                              maxLength: 100,
+                            Material3Components.enhancedTextField(
+                              label: 'Message',
+                              hint: 'Thanks for shopping with us.',
+                              initialValue: _currentLogoConfig.thanksMessage,
                               onChanged: (value) {
                                 final updatedConfig =
                                     _currentLogoConfig.copyWith(
@@ -438,6 +431,14 @@ class _LogoManagerScreenState extends State<LogoManagerScreen> {
                                 );
                                 _saveLogo(updatedConfig);
                               },
+                              maxLines: 2,
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'This message will be centered at the bottom of each label',
+                              style: textTheme.bodySmall?.copyWith(
+                                color: colorScheme.onSurfaceVariant,
+                              ),
                             ),
                           ],
                         ],
@@ -448,10 +449,10 @@ class _LogoManagerScreenState extends State<LogoManagerScreen> {
                   const SizedBox(height: 24),
 
                   // Action Buttons
-                  const Text(
+                  Text(
                     'Actions',
-                    style: TextStyle(
-                      fontSize: 18,
+                    style: textTheme.titleLarge?.copyWith(
+                      color: colorScheme.onSurface,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -460,19 +461,15 @@ class _LogoManagerScreenState extends State<LogoManagerScreen> {
                   // Add/Replace Logo Button
                   SizedBox(
                     width: double.infinity,
-                    child: ElevatedButton.icon(
+                    child: Material3Components.enhancedButton(
                       onPressed: _isSaving ? null : _showImageSourceDialog,
                       icon: Icon(_currentLogoConfig.hasLogo
                           ? Icons.refresh
-                          : Icons.add_photo_alternate),
-                      label: Text(_currentLogoConfig.hasLogo
+                          : Icons.add_photo_alternate_outlined),
+                      label: _currentLogoConfig.hasLogo
                           ? 'Replace Logo'
-                          : 'Add Logo'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blue,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.all(16),
-                      ),
+                          : 'Add Logo',
+                      isPrimary: true,
                     ),
                   ),
 
@@ -480,14 +477,14 @@ class _LogoManagerScreenState extends State<LogoManagerScreen> {
                     const SizedBox(height: 12),
                     SizedBox(
                       width: double.infinity,
-                      child: OutlinedButton.icon(
+                      child: Material3Components.enhancedButton(
                         onPressed: _isSaving ? null : _deleteLogo,
-                        icon: const Icon(Icons.delete, color: Colors.red),
-                        label: const Text('Delete Logo'),
+                        icon: const Icon(Icons.delete_outline),
+                        label: 'Delete Logo',
+                        isPrimary: false,
                         style: OutlinedButton.styleFrom(
-                          foregroundColor: Colors.red,
-                          side: const BorderSide(color: Colors.red),
-                          padding: const EdgeInsets.all(16),
+                          foregroundColor: colorScheme.error,
+                          side: BorderSide(color: colorScheme.error),
                         ),
                       ),
                     ),
@@ -496,7 +493,7 @@ class _LogoManagerScreenState extends State<LogoManagerScreen> {
                   const SizedBox(height: 24),
 
                   // Usage Guidelines
-                  Card(
+                  Material3Components.enhancedCard(
                     child: Padding(
                       padding: const EdgeInsets.all(16),
                       child: Column(
@@ -507,32 +504,43 @@ class _LogoManagerScreenState extends State<LogoManagerScreen> {
                               Icon(Icons.lightbulb_outline,
                                   color: Colors.amber.shade700),
                               const SizedBox(width: 8),
-                              const Text(
+                              Text(
                                 'Tips for Best Results',
-                                style: TextStyle(
-                                  fontSize: 16,
+                                style: textTheme.titleMedium?.copyWith(
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
                             ],
                           ),
                           const SizedBox(height: 12),
-                          const Text(
-                              '• Use high contrast images (black on white works best)'),
-                          const Text(
-                              '• Square or rectangular logos work better than complex shapes'),
-                          const Text('• Maximum file size: 500KB'),
-                          const Text(
-                              '• Supported formats: JPG, PNG, BMP, GIF, WebP'),
-                          const Text(
-                              '• Logo will be optimized for thermal printing automatically'),
+                          _buildTipRow(
+                              'Use high contrast images (black on white works best)'),
+                          _buildTipRow(
+                              'Square or rectangular logos work better'),
+                          _buildTipRow('Maximum file size: 500KB'),
+                          _buildTipRow(
+                              'Supported formats: JPG, PNG, BMP, GIF, WebP'),
                         ],
                       ),
                     ),
                   ),
+                  const SizedBox(height: 32),
                 ],
               ),
             ),
+    );
+  }
+
+  Widget _buildTipRow(String text) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('• ', style: TextStyle(fontWeight: FontWeight.bold)),
+          Expanded(child: Text(text)),
+        ],
+      ),
     );
   }
 

@@ -6,7 +6,7 @@ class CustomLabelDesign {
   final String id;
   final String name;
   final String description;
-  final LabelConfig labelConfig;    // Label size and configuration
+  final LabelConfig labelConfig; // Label size and configuration
   final List<LabelElement> elements; // All draggable elements
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -92,7 +92,7 @@ class CustomLabelDesign {
     final labelHeightDots = labelConfig.heightMm * 8;
 
     double yPos = 20; // Start position
-    final leftMargin = 20.0;
+    const leftMargin = 20.0;
 
     // Label Title (if large enough label)
     if (labelConfig.heightMm >= 80) {

@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 /// Material 3 Enhanced Components for the Label Designer
 /// These components showcase the latest Material 3 design principles
 class Material3Components {
-  
   /// Material 3 Enhanced Card with tonal elevation and surface tints
   static Widget enhancedCard({
     required Widget child,
@@ -14,7 +13,7 @@ class Material3Components {
     return Builder(
       builder: (context) {
         final colorScheme = Theme.of(context).colorScheme;
-        
+
         return Card(
           elevation: elevation ?? (isSelected ? 6 : 2),
           shadowColor: colorScheme.shadow,
@@ -22,13 +21,15 @@ class Material3Components {
             onTap: onTap,
             borderRadius: BorderRadius.circular(16),
             child: Container(
-              decoration: isSelected ? BoxDecoration(
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: colorScheme.primary,
-                  width: 2,
-                ),
-              ) : null,
+              decoration: isSelected
+                  ? BoxDecoration(
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: colorScheme.primary,
+                        width: 2,
+                      ),
+                    )
+                  : null,
               child: child,
             ),
           ),
@@ -47,30 +48,30 @@ class Material3Components {
   }) {
     if (isPrimary) {
       return icon != null
-        ? FilledButton.icon(
-            onPressed: onPressed,
-            icon: icon,
-            label: Text(label),
-            style: style,
-          )
-        : FilledButton(
-            onPressed: onPressed,
-            style: style,
-            child: Text(label),
-          );
+          ? FilledButton.icon(
+              onPressed: onPressed,
+              icon: icon,
+              label: Text(label),
+              style: style,
+            )
+          : FilledButton(
+              onPressed: onPressed,
+              style: style,
+              child: Text(label),
+            );
     } else {
       return icon != null
-        ? OutlinedButton.icon(
-            onPressed: onPressed,
-            icon: icon,
-            label: Text(label),
-            style: style,
-          )
-        : OutlinedButton(
-            onPressed: onPressed,
-            style: style,
-            child: Text(label),
-          );
+          ? OutlinedButton.icon(
+              onPressed: onPressed,
+              icon: icon,
+              label: Text(label),
+              style: style,
+            )
+          : OutlinedButton(
+              onPressed: onPressed,
+              style: style,
+              child: Text(label),
+            );
     }
   }
 
@@ -86,7 +87,7 @@ class Material3Components {
     return Builder(
       builder: (context) {
         final colorScheme = Theme.of(context).colorScheme;
-        
+
         if (onSelected != null) {
           return FilterChip(
             label: Text(label),
@@ -101,7 +102,7 @@ class Material3Components {
             ),
           );
         }
-        
+
         return Chip(
           label: Text(label),
           avatar: avatar,
@@ -129,27 +130,27 @@ class Material3Components {
       builder: (context) {
         final colorScheme = Theme.of(context).colorScheme;
         final textTheme = Theme.of(context).textTheme;
-        
+
         return ListTile(
           title: Text(
             title,
             style: textTheme.titleMedium?.copyWith(
-              color: isSelected 
-                ? colorScheme.onSecondaryContainer 
-                : colorScheme.onSurface,
+              color: isSelected
+                  ? colorScheme.onSecondaryContainer
+                  : colorScheme.onSurface,
               fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
             ),
           ),
           subtitle: subtitle != null
-            ? Text(
-                subtitle,
-                style: textTheme.bodyMedium?.copyWith(
-                  color: isSelected 
-                    ? colorScheme.onSecondaryContainer.withOpacity(0.8)
-                    : colorScheme.onSurfaceVariant,
-                ),
-              )
-            : null,
+              ? Text(
+                  subtitle,
+                  style: textTheme.bodyMedium?.copyWith(
+                    color: isSelected
+                        ? colorScheme.onSecondaryContainer.withOpacity(0.8)
+                        : colorScheme.onSurfaceVariant,
+                  ),
+                )
+              : null,
           leading: leading,
           trailing: trailing,
           onTap: onTap,
@@ -169,6 +170,7 @@ class Material3Components {
   }
 
   /// Material 3 Enhanced Input Field with modern styling
+  /// Supports controller, validator, and other standard TextFormField properties
   static Widget enhancedTextField({
     required String label,
     String? hint,
@@ -179,20 +181,28 @@ class Material3Components {
     Widget? prefixIcon,
     bool enabled = true,
     int? maxLines = 1,
+    TextEditingController? controller,
+    FormFieldValidator<String>? validator,
+    String? helperText,
+    TextCapitalization textCapitalization = TextCapitalization.none,
   }) {
     return Builder(
       builder: (context) {
         final colorScheme = Theme.of(context).colorScheme;
-        
+
         return TextFormField(
+          controller: controller,
           initialValue: initialValue,
           onChanged: onChanged,
           keyboardType: keyboardType,
           enabled: enabled,
           maxLines: maxLines,
+          validator: validator,
+          textCapitalization: textCapitalization,
           decoration: InputDecoration(
             labelText: label,
             hintText: hint,
+            helperText: helperText,
             suffixIcon: suffixIcon,
             prefixIcon: prefixIcon,
             filled: true,
@@ -216,6 +226,19 @@ class Material3Components {
                 width: 2,
               ),
             ),
+            errorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(
+                color: colorScheme.error,
+              ),
+            ),
+            focusedErrorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(
+                color: colorScheme.error,
+                width: 2,
+              ),
+            ),
             labelStyle: TextStyle(
               color: colorScheme.onSurfaceVariant,
             ),
@@ -235,7 +258,7 @@ class Material3Components {
       builder: (context) {
         final colorScheme = Theme.of(context).colorScheme;
         final textTheme = Theme.of(context).textTheme;
-        
+
         return Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -289,7 +312,7 @@ class Material3Components {
       builder: (context) {
         final colorScheme = Theme.of(context).colorScheme;
         final textTheme = Theme.of(context).textTheme;
-        
+
         return Container(
           decoration: BoxDecoration(
             color: colorScheme.surface,

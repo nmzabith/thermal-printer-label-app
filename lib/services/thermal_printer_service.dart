@@ -316,8 +316,9 @@ class ThermalPrinterService {
   /// Used for the test buttons - sends actual commands to printer
   Future<bool> _verifyConnectionWithTest() async {
     try {
-      if (_selectedDevice == null || !BluetoothPrintPlus.isConnected)
+      if (_selectedDevice == null || !BluetoothPrintPlus.isConnected) {
         return false;
+      }
 
       await tscCommand.cleanCommand();
       await tscCommand.size(width: 80, height: 60);
@@ -439,26 +440,26 @@ class ThermalPrinterService {
       String textFont = "2"; // Normal text
       String smallFont = "1"; // Small details
 
-      commands.add('TEXT 20,${yPos},"${titleFont}",0,1,1,"TSC TEST PRINT"');
+      commands.add('TEXT 20,$yPos,"$titleFont",0,1,1,"TSC TEST PRINT"');
       yPos += lineHeight;
 
-      commands.add('TEXT 20,${yPos},"${headerFont}",0,1,1,"XPrinter XP-365B"');
+      commands.add('TEXT 20,$yPos,"$headerFont",0,1,1,"XPrinter XP-365B"');
       yPos += lineHeight;
 
-      commands.add(
-          'TEXT 20,${yPos},"${textFont}",0,1,1,"Config: ${labelConfig.name}"');
+      commands
+          .add('TEXT 20,$yPos,"$textFont",0,1,1,"Config: ${labelConfig.name}"');
       yPos += lineHeight;
 
       String timestamp = DateTime.now().toString().substring(0, 16);
-      commands.add('TEXT 20,${yPos},"${textFont}",0,1,1,"${timestamp}"');
+      commands.add('TEXT 20,$yPos,"$textFont",0,1,1,"$timestamp"');
       yPos += lineHeight;
 
       commands.add(
-          'TEXT 20,${yPos},"${smallFont}",0,1,1,"Size: ${labelConfig.widthMm.toInt()}mm x ${labelConfig.heightMm.toInt()}mm"');
+          'TEXT 20,$yPos,"$smallFont",0,1,1,"Size: ${labelConfig.widthMm.toInt()}mm x ${labelConfig.heightMm.toInt()}mm"');
       yPos += lineHeight;
 
       commands.add(
-          'TEXT 20,${yPos},"${smallFont}",0,1,1,"Gap: ${labelConfig.spacingMm.toInt()}mm"');
+          'TEXT 20,$yPos,"$smallFont",0,1,1,"Gap: ${labelConfig.spacingMm.toInt()}mm"');
 
       // Print command
       commands.add('PRINT 1,1');

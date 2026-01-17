@@ -2,16 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:bluetooth_print_plus/bluetooth_print_plus.dart';
 import '../services/thermal_printer_service.dart';
 import 'label_settings_screen.dart';
+import '../widgets/material3_components.dart';
 
 class ThermalPrinterSettingsScreen extends StatefulWidget {
   const ThermalPrinterSettingsScreen({super.key});
 
   @override
-  State<ThermalPrinterSettingsScreen> createState() => _ThermalPrinterSettingsScreenState();
+  State<ThermalPrinterSettingsScreen> createState() =>
+      _ThermalPrinterSettingsScreenState();
 }
 
-class _ThermalPrinterSettingsScreenState extends State<ThermalPrinterSettingsScreen> 
-    with WidgetsBindingObserver {
+class _ThermalPrinterSettingsScreenState
+    extends State<ThermalPrinterSettingsScreen> with WidgetsBindingObserver {
   final ThermalPrinterService _printerService = ThermalPrinterService();
   List<BluetoothDevice> _availablePrinters = [];
   BluetoothDevice? _selectedPrinter;
@@ -58,7 +60,7 @@ class _ThermalPrinterSettingsScreenState extends State<ThermalPrinterSettingsScr
     try {
       bool connected = await _printerService.isConnected;
       Map<String, dynamic> status = await _printerService.getPrinterStatus();
-      
+
       if (mounted) {
         setState(() {
           _isConnected = connected;
@@ -99,7 +101,7 @@ class _ThermalPrinterSettingsScreenState extends State<ThermalPrinterSettingsScr
 
     try {
       List<BluetoothDevice> devices;
-      
+
       if (_showAllDevices) {
         devices = await _printerService.getAllDevices();
       } else {
@@ -116,14 +118,14 @@ class _ThermalPrinterSettingsScreenState extends State<ThermalPrinterSettingsScr
       if (devices.isEmpty) {
         _showNoDevicesDialog();
       }
-
     } catch (e) {
       print('Error scanning for printers: $e');
       if (mounted) {
         setState(() {
           _isScanning = false;
         });
-        _showErrorDialog('Scan Error', 'Failed to scan for printers: ${e.toString()}');
+        _showErrorDialog(
+            'Scan Error', 'Failed to scan for printers: ${e.toString()}');
       }
     }
   }
@@ -139,20 +141,20 @@ class _ThermalPrinterSettingsScreenState extends State<ThermalPrinterSettingsScr
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Connecting to ${device.name}...'),
-          backgroundColor: Colors.blue,
+          backgroundColor: Theme.of(context).colorScheme.primary,
           duration: const Duration(seconds: 3),
         ),
       );
 
       bool success = await _printerService.connectToPrinter(device);
-      
+
       // Allow extra time for connection to stabilize
       if (success) {
         await Future.delayed(const Duration(seconds: 1));
         // Double check connection status
         success = await _printerService.isConnected;
       }
-      
+
       if (mounted) {
         setState(() {
           _isConnecting = false;
@@ -163,19 +165,20 @@ class _ThermalPrinterSettingsScreenState extends State<ThermalPrinterSettingsScr
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text('✅ Connected to ${device.name}'),
-                backgroundColor: Colors.green,
+                backgroundColor: Colors.green, // Keep consistent success color
                 duration: const Duration(seconds: 2),
               ),
             );
           } else {
             ScaffoldMessenger.of(context).clearSnackBars();
-            _showErrorDialog('Connection Failed', 
+            _showErrorDialog(
+                'Connection Failed',
                 'Failed to connect to ${device.name}.\n\n'
-                'Please ensure:\n'
-                '• Printer is turned on\n'
-                '• Printer is in pairing mode\n'
-                '• Printer is not connected to another device\n'
-                '• You are within range (< 10m)');
+                    'Please ensure:\n'
+                    '• Printer is turned on\n'
+                    '• Printer is in pairing mode\n'
+                    '• Printer is not connected to another device\n'
+                    '• You are within range (< 10m)');
           }
         });
       }
@@ -186,9 +189,10 @@ class _ThermalPrinterSettingsScreenState extends State<ThermalPrinterSettingsScr
           _isConnecting = false;
         });
         ScaffoldMessenger.of(context).clearSnackBars();
-        _showErrorDialog('Connection Error', 
+        _showErrorDialog(
+            'Connection Error',
             'Failed to connect to printer: ${e.toString()}\n\n'
-            'Try turning the printer off and on again, then retry.');
+                'Try turning the printer off and on again, then retry.');
       }
     }
   }
@@ -197,7 +201,7 @@ class _ThermalPrinterSettingsScreenState extends State<ThermalPrinterSettingsScr
   Future<void> _disconnectPrinter() async {
     try {
       bool success = await _printerService.disconnectPrinter();
-      
+
       if (mounted) {
         setState(() {
           _isConnected = false;
@@ -206,17 +210,18 @@ class _ThermalPrinterSettingsScreenState extends State<ThermalPrinterSettingsScr
 
         if (success) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Disconnected from printer'),
-              backgroundColor: Colors.orange,
-              duration: Duration(seconds: 2),
+            SnackBar(
+              content: const Text('Disconnected from printer'),
+              backgroundColor: Theme.of(context).colorScheme.tertiary,
+              duration: const Duration(seconds: 2),
             ),
           );
         }
       }
     } catch (e) {
       print('Error disconnecting printer: $e');
-      _showErrorDialog('Disconnect Error', 'Failed to disconnect: ${e.toString()}');
+      _showErrorDialog(
+          'Disconnect Error', 'Failed to disconnect: ${e.toString()}');
     }
   }
 
@@ -232,33 +237,34 @@ class _ThermalPrinterSettingsScreenState extends State<ThermalPrinterSettingsScr
       showDialog(
         context: context,
         barrierDismissible: false,
-        builder: (context) => const AlertDialog(
+        builder: (context) => AlertDialog(
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              CircularProgressIndicator(),
-              SizedBox(height: 16),
-              Text('Testing connection...\nListen for beep sound'),
+              Material3Components.enhancedProgressIndicator(),
+              const SizedBox(height: 16),
+              const Text('Testing connection...\nListen for beep sound'),
             ],
           ),
         ),
       );
 
       bool success = await _printerService.quickConnectionTest();
-      
+
       if (mounted) {
         Navigator.of(context).pop(); // Close loading dialog
-        
+
         if (success) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Connection test passed! Did you hear the beep?'),
-              backgroundColor: Colors.green,
-              duration: Duration(seconds: 3),
+            SnackBar(
+              content:
+                  const Text('Connection test passed! Did you hear the beep?'),
+              backgroundColor: Theme.of(context).colorScheme.primary,
+              duration: const Duration(seconds: 3),
             ),
           );
         } else {
-          _showErrorDialog('Test Failed', 
+          _showErrorDialog('Test Failed',
               'Connection test failed. Please check printer connection and try again.');
           await _updatePrinterStatus(); // Refresh status
         }
@@ -284,23 +290,23 @@ class _ThermalPrinterSettingsScreenState extends State<ThermalPrinterSettingsScr
       showDialog(
         context: context,
         barrierDismissible: false,
-        builder: (context) => const AlertDialog(
+        builder: (context) => AlertDialog(
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              CircularProgressIndicator(),
-              SizedBox(height: 16),
-              Text('Printing test label...\nUsing TSC commands'),
+              Material3Components.enhancedProgressIndicator(),
+              const SizedBox(height: 16),
+              const Text('Printing test label...\nUsing TSC commands'),
             ],
           ),
         ),
       );
 
       bool success = await _printerService.fullTestPrint();
-      
+
       if (mounted) {
         Navigator.of(context).pop(); // Close loading dialog
-        
+
         if (success) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -310,7 +316,7 @@ class _ThermalPrinterSettingsScreenState extends State<ThermalPrinterSettingsScr
             ),
           );
         } else {
-          _showErrorDialog('Print Failed', 
+          _showErrorDialog('Print Failed',
               'Test print failed. Please check printer and try again.');
           await _updatePrinterStatus(); // Refresh status
         }
@@ -329,7 +335,8 @@ class _ThermalPrinterSettingsScreenState extends State<ThermalPrinterSettingsScr
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(title),
+        title: Text(title,
+            style: TextStyle(color: Theme.of(context).colorScheme.error)),
         content: Text(message),
         actions: [
           TextButton(
@@ -367,14 +374,17 @@ class _ThermalPrinterSettingsScreenState extends State<ThermalPrinterSettingsScr
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Thermal Printer Settings'),
-        backgroundColor: Colors.blue[700],
-        foregroundColor: Colors.white,
+        title: Text('Thermal Printer Settings', style: textTheme.titleLarge),
+        backgroundColor: colorScheme.surface,
+        scrolledUnderElevation: 3,
         actions: [
           IconButton(
-            icon: const Icon(Icons.label),
+            icon: const Icon(Icons.label_outline),
             onPressed: () {
               Navigator.push(
                 context,
@@ -392,197 +402,217 @@ class _ThermalPrinterSettingsScreenState extends State<ThermalPrinterSettingsScr
           ),
         ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Connection Status Card
-            Card(
-              elevation: 4,
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(
-                          _isConnected ? Icons.bluetooth_connected : Icons.bluetooth_disabled,
-                          color: _isConnected ? Colors.green : Colors.grey,
-                          size: 24,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Printer Status',
-                          style: Theme.of(context).textTheme.titleLarge,
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    _buildStatusRow('Status', _isConnected ? 'Connected' : 'Disconnected'),
-                    if (_selectedPrinter != null) ...[
-                      _buildStatusRow('Printer', _selectedPrinter!.name.isNotEmpty ? _selectedPrinter!.name : 'Unknown'),
-                      _buildStatusRow('Address', _selectedPrinter!.address.isNotEmpty ? _selectedPrinter!.address : 'Unknown'),
-                    ],
-                    const SizedBox(height: 16),
-                    
-                    // Action Buttons Row
-                    Row(
-                      children: [
-                        if (_isConnected) ...[
-                          Expanded(
-                            child: ElevatedButton.icon(
-                              onPressed: _quickConnectionTest,
-                              icon: const Icon(Icons.volume_up, size: 18),
-                              label: const Text('Quick Test'),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.orange,
-                                foregroundColor: Colors.white,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: ElevatedButton.icon(
-                              onPressed: _fullTestPrint,
-                              icon: const Icon(Icons.print, size: 18),
-                              label: const Text('Test Print'),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.green,
-                                foregroundColor: Colors.white,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: ElevatedButton.icon(
-                              onPressed: _disconnectPrinter,
-                              icon: const Icon(Icons.bluetooth_disabled, size: 18),
-                              label: const Text('Disconnect'),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.red,
-                                foregroundColor: Colors.white,
-                              ),
-                            ),
-                          ),
-                        ] else ...[
-                          Expanded(
-                            child: ElevatedButton.icon(
-                              onPressed: _isScanning ? null : _scanForPrinters,
-                              icon: _isScanning 
-                                  ? const SizedBox(
-                                      width: 18,
-                                      height: 18,
-                                      child: CircularProgressIndicator(strokeWidth: 2),
-                                    )
-                                  : const Icon(Icons.search, size: 18),
-                              label: Text(_isScanning ? 'Scanning...' : 'Scan Devices'),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.blue,
-                                foregroundColor: Colors.white,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            
-            const SizedBox(height: 16),
-            
-            // Scan Options
-            if (!_isConnected) ...[
-              CheckboxListTile(
-                title: const Text('Show All Devices'),
-                subtitle: const Text('Include paired devices in scan results'),
-                value: _showAllDevices,
-                onChanged: (value) {
-                  setState(() {
-                    _showAllDevices = value ?? false;
-                  });
-                },
-              ),
-              
-              const SizedBox(height: 16),
-            ],
-            
-            // Available Printers List
-            Text(
-              'Available Devices (${_availablePrinters.length})',
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            const SizedBox(height: 8),
-            
-            Expanded(
-              child: _availablePrinters.isEmpty
-                  ? Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Connection Status Card
+              Material3Components.enhancedCard(
+                elevation: 2,
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
                         children: [
                           Icon(
-                            Icons.bluetooth_searching,
-                            size: 64,
-                            color: Colors.grey[400],
+                            _isConnected
+                                ? Icons.bluetooth_connected
+                                : Icons.bluetooth_disabled,
+                            color: _isConnected
+                                ? Colors.green
+                                : colorScheme.onSurfaceVariant,
+                            size: 24,
                           ),
-                          const SizedBox(height: 16),
+                          const SizedBox(width: 8),
                           Text(
-                            'No devices found',
-                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                              color: Colors.grey[600],
+                            'Printer Status',
+                            style: textTheme.titleMedium?.copyWith(
+                              color: colorScheme.primary,
+                              fontWeight: FontWeight.bold,
                             ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Tap "Scan Devices" to search for printers',
-                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: Colors.grey[600],
-                            ),
-                            textAlign: TextAlign.center,
                           ),
                         ],
                       ),
+                      const SizedBox(height: 12),
+                      _buildStatusRow('Status',
+                          _isConnected ? 'Connected' : 'Disconnected'),
+                      if (_selectedPrinter != null) ...[
+                        _buildStatusRow(
+                            'Printer',
+                            _selectedPrinter!.name.isNotEmpty
+                                ? _selectedPrinter!.name
+                                : 'Unknown'),
+                        _buildStatusRow(
+                            'Address',
+                            _selectedPrinter!.address.isNotEmpty
+                                ? _selectedPrinter!.address
+                                : 'Unknown'),
+                      ],
+                      const SizedBox(height: 16),
+
+                      // Action Buttons Row
+                      Row(
+                        children: [
+                          if (_isConnected) ...[
+                            Expanded(
+                              child: Material3Components.enhancedButton(
+                                onPressed: _quickConnectionTest,
+                                label: 'Quick Test',
+                                icon: const Icon(Icons.volume_up, size: 18),
+                                isPrimary: false,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.orange,
+                                  foregroundColor: Colors.white,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Material3Components.enhancedButton(
+                                onPressed: _fullTestPrint,
+                                label: 'Test Print',
+                                icon: const Icon(Icons.print, size: 18),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Material3Components.enhancedButton(
+                                onPressed: _disconnectPrinter,
+                                label: 'Disconnect',
+                                icon: const Icon(Icons.bluetooth_disabled,
+                                    size: 18),
+                                isPrimary: false,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: colorScheme.error,
+                                  foregroundColor: colorScheme.onError,
+                                ),
+                              ),
+                            ),
+                          ] else ...[
+                            Expanded(
+                              child: Material3Components.enhancedButton(
+                                onPressed:
+                                    _isScanning ? null : _scanForPrinters,
+                                label: _isScanning
+                                    ? 'Scanning...'
+                                    : 'Scan Devices',
+                                icon: _isScanning
+                                    ? const SizedBox(
+                                        width: 18,
+                                        height: 18,
+                                        child: CircularProgressIndicator(
+                                            strokeWidth: 2),
+                                      )
+                                    : const Icon(Icons.search, size: 18),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 24),
+
+              // Scan Options
+              if (!_isConnected) ...[
+                SwitchListTile(
+                  // Changed from CheckboxListTile for M3 Feel
+                  title: const Text('Show All Devices'),
+                  subtitle:
+                      const Text('Include paired devices in scan results'),
+                  value: _showAllDevices,
+                  onChanged: (value) {
+                    setState(() {
+                      _showAllDevices = value;
+                    });
+                  },
+                ),
+                const SizedBox(height: 16),
+              ],
+
+              // Available Printers List
+              Text(
+                'Available Devices (${_availablePrinters.length})',
+                style: textTheme.titleMedium,
+              ),
+              const SizedBox(height: 12),
+
+              _availablePrinters.isEmpty
+                  ? Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(32.0),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.bluetooth_searching,
+                              size: 48,
+                              color: colorScheme.outlineVariant,
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              'No devices found',
+                              style: textTheme.titleMedium?.copyWith(
+                                color: colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Tap "Scan Devices" to search for printers',
+                              style: textTheme.bodyMedium?.copyWith(
+                                color: colorScheme.onSurfaceVariant,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
+                        ),
+                      ),
                     )
                   : ListView.builder(
+                      shrinkWrap: true, // Needed inside SingleChildScrollView
+                      physics: const NeverScrollableScrollPhysics(),
                       itemCount: _availablePrinters.length,
                       itemBuilder: (context, index) {
                         final device = _availablePrinters[index];
-                        final isSelected = _selectedPrinter?.address == device.address;
-                        
-                        return Card(
-                          elevation: 2,
-                          margin: const EdgeInsets.symmetric(vertical: 4),
-                          child: ListTile(
+                        final isSelected =
+                            _selectedPrinter?.address == device.address;
+
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 8.0),
+                          child: Material3Components.enhancedListTile(
                             leading: Icon(
                               Icons.print,
-                              color: isSelected ? Colors.green : Colors.blue,
+                              color: isSelected
+                                  ? Colors.green
+                                  : colorScheme.primary,
                             ),
-                            title: Text(
-                              device.name.isNotEmpty ? device.name : 'Unknown Device',
-                              style: TextStyle(
-                                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                              ),
-                            ),
-                            subtitle: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text('Address: ${device.address}'),
-                                if (device.type != null)
-                                  Text('Type: ${device.type}'),
-                              ],
-                            ),
+                            title: device.name.isNotEmpty
+                                ? device.name
+                                : 'Unknown Device',
+                            subtitle:
+                                'Address: ${device.address}\nType: ${device.type}',
+                            isSelected: isSelected,
                             trailing: _isConnecting && isSelected
-                                ? const SizedBox(
+                                ? SizedBox(
                                     width: 24,
                                     height: 24,
-                                    child: CircularProgressIndicator(strokeWidth: 2),
+                                    child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: colorScheme.primary),
                                   )
                                 : isSelected && _isConnected
-                                    ? const Icon(Icons.check_circle, color: Colors.green)
-                                    : const Icon(Icons.arrow_forward_ios),
+                                    ? const Icon(Icons.check_circle,
+                                        color: Colors.green)
+                                    : Icon(Icons.arrow_forward_ios,
+                                        size: 16,
+                                        color: colorScheme.onSurfaceVariant),
                             onTap: () {
                               if (!_isConnecting && !_isConnected) {
                                 _connectToPrinter(device);
@@ -592,45 +622,47 @@ class _ThermalPrinterSettingsScreenState extends State<ThermalPrinterSettingsScr
                         );
                       },
                     ),
-            ),
-            
-            // Help Text
-            const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.blue[50],
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.blue[200]!),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Icon(Icons.info_outline, color: Colors.blue[700], size: 20),
-                      const SizedBox(width: 8),
-                      Text(
-                        'TSC/TSPL Thermal Printer',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: Colors.blue[700],
+
+              // Help Text
+              const SizedBox(height: 24),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: colorScheme.secondaryContainer.withOpacity(0.5),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: colorScheme.secondaryContainer),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.info_outline,
+                            color: colorScheme.secondary, size: 20),
+                        const SizedBox(width: 8),
+                        Text(
+                          'TSC/TSPL Thermal Printer',
+                          style: textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: colorScheme.secondary,
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    '• Uses TSC/TSPL commands optimized for XPrinter XP-365B\n'
-                    '• Quick Test sends beep commands to verify connection\n'
-                    '• Test Print creates a full label with text and barcode\n'
-                    '• Supports precise positioning and professional labels',
-                    style: TextStyle(fontSize: 13),
-                  ),
-                ],
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      '• Uses TSC/TSPL commands optimized for XPrinter XP-365B\n'
+                      '• Quick Test sends beep commands to verify connection\n'
+                      '• Test Print creates a full label with text and barcode\n'
+                      '• Supports precise positioning and professional labels',
+                      style: textTheme.bodySmall
+                          ?.copyWith(color: colorScheme.onSecondaryContainer),
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -644,11 +676,12 @@ class _ThermalPrinterSettingsScreenState extends State<ThermalPrinterSettingsScr
         children: [
           Text(
             label,
-            style: const TextStyle(fontWeight: FontWeight.w500),
+            style: const TextStyle(fontWeight: FontWeight.bold),
           ),
           Text(
             value,
-            style: const TextStyle(color: Colors.grey),
+            style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurfaceVariant),
           ),
         ],
       ),

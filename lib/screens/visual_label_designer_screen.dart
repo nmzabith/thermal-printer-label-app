@@ -18,7 +18,8 @@ class VisualLabelDesignerScreen extends StatefulWidget {
   });
 
   @override
-  State<VisualLabelDesignerScreen> createState() => _VisualLabelDesignerScreenState();
+  State<VisualLabelDesignerScreen> createState() =>
+      _VisualLabelDesignerScreenState();
 }
 
 class _VisualLabelDesignerScreenState extends State<VisualLabelDesignerScreen> {
@@ -26,10 +27,11 @@ class _VisualLabelDesignerScreenState extends State<VisualLabelDesignerScreen> {
   late LabelConfig _labelConfig;
   LabelElement? _selectedElement;
   bool _isModified = false;
-  
-  final CustomLabelDesignService _designService = CustomLabelDesignService.instance;
+
+  final CustomLabelDesignService _designService =
+      CustomLabelDesignService.instance;
   final LabelConfigService _configService = LabelConfigService.instance;
-  
+
   // Design canvas properties
   final double _canvasScale = 0.5; // Scale factor for display
   late double _canvasWidth;
@@ -53,61 +55,74 @@ class _VisualLabelDesignerScreenState extends State<VisualLabelDesignerScreen> {
       _labelConfig = await _configService.getCurrentConfig();
       _currentDesign = CustomLabelDesign.createDefault(_labelConfig);
     }
-    
+
     // Calculate canvas dimensions (scaled for display)
-    _canvasWidth = _labelConfig.widthMm * 8 * _canvasScale; // Convert mm to dots then scale
+    _canvasWidth = _labelConfig.widthMm *
+        8 *
+        _canvasScale; // Convert mm to dots then scale
     _canvasHeight = _labelConfig.heightMm * 8 * _canvasScale;
-    
+
     setState(() {});
   }
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
     return Scaffold(
       appBar: AppBar(
-        title: Text('Label Designer - ${_currentDesign.name}'),
-        backgroundColor: Colors.blue,
-        foregroundColor: Colors.white,
+        title: Text('Label Designer - ${_currentDesign.name}',
+            style: textTheme.titleLarge),
+        backgroundColor: colorScheme.surface,
+        scrolledUnderElevation: 3,
         actions: [
           IconButton(
-            icon: const Icon(Icons.save),
+            icon: _isModified
+                ? Icon(Icons.save, color: colorScheme.primary)
+                : Icon(Icons.save_outlined,
+                    color: colorScheme.onSurface.withOpacity(0.38)),
             onPressed: _isModified ? _saveDesign : null,
             tooltip: 'Save Design',
           ),
           IconButton(
-            icon: const Icon(Icons.preview),
+            icon: const Icon(Icons.preview_outlined),
             onPressed: _previewLabel,
             tooltip: 'Preview Label',
           ),
           PopupMenuButton(
+            icon: const Icon(Icons.more_vert),
             itemBuilder: (context) => [
-              const PopupMenuItem(
+              PopupMenuItem(
                 value: 'export',
                 child: Row(
                   children: [
-                    Icon(Icons.file_download),
-                    SizedBox(width: 8),
-                    Text('Export Design'),
+                    Icon(Icons.file_download_outlined,
+                        color: colorScheme.onSurfaceVariant),
+                    const SizedBox(width: 8),
+                    Text('Export Design', style: textTheme.bodyLarge),
                   ],
                 ),
               ),
-              const PopupMenuItem(
+              PopupMenuItem(
                 value: 'import',
                 child: Row(
                   children: [
-                    Icon(Icons.file_upload),
-                    SizedBox(width: 8),
-                    Text('Import Design'),
+                    Icon(Icons.file_upload_outlined,
+                        color: colorScheme.onSurfaceVariant),
+                    const SizedBox(width: 8),
+                    Text('Import Design', style: textTheme.bodyLarge),
                   ],
                 ),
               ),
-              const PopupMenuItem(
+              PopupMenuItem(
                 value: 'duplicate',
                 child: Row(
                   children: [
-                    Icon(Icons.copy),
-                    SizedBox(width: 8),
-                    Text('Duplicate'),
+                    Icon(Icons.copy_outlined,
+                        color: colorScheme.onSurfaceVariant),
+                    const SizedBox(width: 8),
+                    Text('Duplicate', style: textTheme.bodyLarge),
                   ],
                 ),
               ),
@@ -132,13 +147,13 @@ class _VisualLabelDesignerScreenState extends State<VisualLabelDesignerScreen> {
         children: [
           // Element Palette (Left Side)
           _buildElementPalette(),
-          
+
           // Design Canvas (Center)
           Expanded(
             flex: 3,
             child: _buildDesignCanvas(),
           ),
-          
+
           // Properties Panel (Right Side)
           _buildPropertiesPanel(),
         ],
@@ -146,30 +161,39 @@ class _VisualLabelDesignerScreenState extends State<VisualLabelDesignerScreen> {
       floatingActionButton: FloatingActionButton(
         onPressed: _addCustomText,
         tooltip: 'Add Text',
+        backgroundColor: colorScheme.primaryContainer,
+        foregroundColor: colorScheme.onPrimaryContainer,
+        elevation: 4,
         child: const Icon(Icons.text_fields),
       ),
     );
   }
 
   Widget _buildElementPalette() {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
     return Container(
       width: 250,
-      color: Colors.grey.shade100,
+      decoration: BoxDecoration(
+        color: colorScheme.surface,
+        border: Border(right: BorderSide(color: colorScheme.outlineVariant)),
+      ),
       child: Column(
         children: [
           Container(
             padding: const EdgeInsets.all(16),
-            color: Colors.blue.shade50,
-            child: const Row(
+            color: colorScheme
+                .surfaceVariant, // Fixed: surfaceContainer -> surfaceVariant
+            child: Row(
               children: [
-                Icon(Icons.widgets, color: Colors.blue),
-                SizedBox(width: 8),
+                Icon(Icons.widgets_outlined, color: colorScheme.primary),
+                const SizedBox(width: 8),
                 Text(
                   'Elements',
-                  style: TextStyle(
-                    fontSize: 16,
+                  style: textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.bold,
-                    color: Colors.blue,
+                    color: colorScheme.primary,
                   ),
                 ),
               ],
@@ -206,16 +230,19 @@ class _VisualLabelDesignerScreenState extends State<VisualLabelDesignerScreen> {
   }
 
   Widget _buildPaletteSection(String title, List<LabelElementType> types) {
+    final textTheme = Theme.of(context).textTheme;
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8),
+          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
           child: Text(
             title,
-            style: const TextStyle(
+            style: textTheme.labelLarge?.copyWith(
+              color: colorScheme.onSurfaceVariant,
               fontWeight: FontWeight.bold,
-              color: Colors.grey,
             ),
           ),
         ),
@@ -226,74 +253,115 @@ class _VisualLabelDesignerScreenState extends State<VisualLabelDesignerScreen> {
   }
 
   Widget _buildPaletteItem(LabelElementType type) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
     return Draggable<LabelElementType>(
       data: type,
       feedback: Material(
-        elevation: 4,
+        elevation: 6,
+        borderRadius: BorderRadius.circular(8),
+        color: colorScheme.surface,
         child: Container(
-          padding: const EdgeInsets.all(8),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           decoration: BoxDecoration(
-            color: Colors.blue.shade100,
-            borderRadius: BorderRadius.circular(4),
+            color: colorScheme.primaryContainer,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: colorScheme.primary),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(type.icon, style: const TextStyle(fontSize: 16)),
-              const SizedBox(width: 8),
-              Text(type.displayName),
+              Text(type.icon, style: const TextStyle(fontSize: 20)),
+              const SizedBox(width: 12),
+              Text(
+                type.displayName,
+                style: textTheme.bodyMedium?.copyWith(
+                  color: colorScheme.onPrimaryContainer,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ],
           ),
         ),
       ),
       child: Container(
-        margin: const EdgeInsets.only(bottom: 4),
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(4),
-          border: Border.all(color: Colors.grey.shade300),
-        ),
-        child: Row(
-          children: [
-            Text(type.icon, style: const TextStyle(fontSize: 16)),
-            const SizedBox(width: 8),
-            Expanded(child: Text(type.displayName)),
-          ],
+        margin: const EdgeInsets.only(bottom: 8),
+        child: Material3Components.enhancedCard(
+          elevation: 0,
+          onTap: null, // Just for styling
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            child: Row(
+              children: [
+                Text(type.icon, style: const TextStyle(fontSize: 18)),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    type.displayName,
+                    style: textTheme.bodyMedium?.copyWith(
+                      color: colorScheme.onSurface,
+                    ),
+                  ),
+                ),
+                Icon(Icons.drag_indicator,
+                    size: 16, color: colorScheme.outline),
+              ],
+            ),
+          ),
         ),
       ),
     );
   }
 
   Widget _buildDesignCanvas() {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
     return Container(
-      color: Colors.white,
+      color: colorScheme.surface, // Canvas background
       child: Column(
         children: [
           // Canvas toolbar
           Container(
-            padding: const EdgeInsets.all(8),
-            color: Colors.grey.shade50,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            decoration: BoxDecoration(
+              color: colorScheme.surfaceVariant.withOpacity(0.3),
+              border:
+                  Border(bottom: BorderSide(color: colorScheme.outlineVariant)),
+            ),
             child: Row(
               children: [
-                Text('${_labelConfig.name} (${_labelConfig.widthMm}×${_labelConfig.heightMm}mm)'),
+                Icon(Icons.aspect_ratio,
+                    size: 20, color: colorScheme.onSurfaceVariant),
+                const SizedBox(width: 8),
+                Text(
+                  '${_labelConfig.name} (${_labelConfig.widthMm}×${_labelConfig.heightMm}mm)',
+                  style: textTheme.labelLarge?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
+                      fontWeight: FontWeight.bold),
+                ),
                 const Spacer(),
                 IconButton(
                   icon: const Icon(Icons.zoom_in),
                   onPressed: () {
                     // TODO: Implement zoom
                   },
+                  tooltip: 'Zoom In',
+                  color: colorScheme.onSurfaceVariant,
                 ),
                 IconButton(
                   icon: const Icon(Icons.zoom_out),
                   onPressed: () {
                     // TODO: Implement zoom
                   },
+                  tooltip: 'Zoom Out',
+                  color: colorScheme.onSurfaceVariant,
                 ),
               ],
             ),
           ),
-          
+
           // Main canvas
           Expanded(
             child: Center(
@@ -306,13 +374,14 @@ class _VisualLabelDesignerScreenState extends State<VisualLabelDesignerScreen> {
                     width: _canvasWidth,
                     height: _canvasHeight,
                     decoration: BoxDecoration(
-                      color: Colors.white,
-                      border: Border.all(color: Colors.black, width: 2),
+                      color: Colors.white, // The label itself should be white
+                      border: Border.all(color: colorScheme.outline, width: 2),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.grey.withOpacity(0.3),
+                          color: Colors.black.withOpacity(0.1),
                           spreadRadius: 2,
-                          blurRadius: 5,
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
                         ),
                       ],
                     ),
@@ -332,8 +401,9 @@ class _VisualLabelDesignerScreenState extends State<VisualLabelDesignerScreen> {
   }
 
   Widget _buildCanvasElement(LabelElement element) {
+    final colorScheme = Theme.of(context).colorScheme;
     final isSelected = _selectedElement?.id == element.id;
-    
+
     return Positioned(
       left: element.x * _canvasScale,
       top: element.y * _canvasScale,
@@ -345,9 +415,11 @@ class _VisualLabelDesignerScreenState extends State<VisualLabelDesignerScreen> {
         },
         onPanUpdate: (details) {
           setState(() {
-            final newX = (element.x + details.delta.dx / _canvasScale).clamp(0.0, _labelConfig.widthMm * 8 - 50);
-            final newY = (element.y + details.delta.dy / _canvasScale).clamp(0.0, _labelConfig.heightMm * 8 - 20);
-            
+            final newX = (element.x + details.delta.dx / _canvasScale)
+                .clamp(0.0, _labelConfig.widthMm * 8 - 50);
+            final newY = (element.y + details.delta.dy / _canvasScale)
+                .clamp(0.0, _labelConfig.heightMm * 8 - 20);
+
             _updateElement(element.copyWith(x: newX, y: newY));
             _isModified = true;
           });
@@ -355,9 +427,13 @@ class _VisualLabelDesignerScreenState extends State<VisualLabelDesignerScreen> {
         child: Container(
           padding: const EdgeInsets.all(4),
           decoration: BoxDecoration(
-            color: isSelected ? Colors.blue.shade100 : Colors.transparent,
-            border: isSelected ? Border.all(color: Colors.blue, width: 2) : null,
-            borderRadius: BorderRadius.circular(2),
+            color: isSelected
+                ? colorScheme.primary.withOpacity(0.1)
+                : Colors.transparent,
+            border: isSelected
+                ? Border.all(color: colorScheme.primary, width: 1.5)
+                : Border.all(color: Colors.transparent, width: 1.5),
+            borderRadius: BorderRadius.circular(4),
           ),
           child: _buildElementWidget(element),
         ),
@@ -367,42 +443,48 @@ class _VisualLabelDesignerScreenState extends State<VisualLabelDesignerScreen> {
 
   Widget _buildElementWidget(LabelElement element) {
     if (element.type == LabelElementType.icon && element.iconPath != null) {
-      return Icon(
-        Icons.image,
-        size: 20,
-        color: Colors.grey,
+      return const Icon(
+        Icons.image_outlined,
+        size: 24,
+        color: Colors.black54,
       );
     }
-    
+
     return Text(
       element.content,
       style: TextStyle(
         fontSize: (8 + element.fontSize * 2) * _canvasScale,
         fontWeight: element.isBold ? FontWeight.bold : FontWeight.normal,
-        color: element.isVisible ? Colors.black : Colors.grey,
+        color: element.isVisible ? Colors.black : Colors.grey.shade300,
+        fontFamily: 'Roboto',
       ),
     );
   }
 
   Widget _buildPropertiesPanel() {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
     return Container(
       width: 250,
-      color: Colors.grey.shade100,
+      decoration: BoxDecoration(
+        color: colorScheme.surface,
+        border: Border(left: BorderSide(color: colorScheme.outlineVariant)),
+      ),
       child: Column(
         children: [
           Container(
             padding: const EdgeInsets.all(16),
-            color: Colors.green.shade50,
-            child: const Row(
+            color: colorScheme.surfaceVariant,
+            child: Row(
               children: [
-                Icon(Icons.settings, color: Colors.green),
-                SizedBox(width: 8),
+                Icon(Icons.tune, color: colorScheme.primary),
+                const SizedBox(width: 8),
                 Text(
                   'Properties',
-                  style: TextStyle(
-                    fontSize: 16,
+                  style: textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.bold,
-                    color: Colors.green,
+                    color: colorScheme.primary,
                   ),
                 ),
               ],
@@ -419,115 +501,187 @@ class _VisualLabelDesignerScreenState extends State<VisualLabelDesignerScreen> {
   }
 
   Widget _buildElementProperties(LabelElement element) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        Text(
-          element.type.displayName,
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-          ),
+        Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: colorScheme.primaryContainer,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                element.type.icon,
+                style: const TextStyle(fontSize: 20),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Selected Element',
+                    style: textTheme.labelSmall
+                        ?.copyWith(color: colorScheme.onSurfaceVariant),
+                  ),
+                  Text(
+                    element.type.displayName,
+                    style: textTheme.titleSmall
+                        ?.copyWith(fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
-        const SizedBox(height: 16),
-        
+        const Divider(height: 32),
+
         // Content
         if (element.type != LabelElementType.icon) ...[
-          const Text('Content:', style: TextStyle(fontWeight: FontWeight.bold)),
-          TextFormField(
+          Material3Components.enhancedTextField(
+            label: 'Content',
             initialValue: element.content,
             onChanged: (value) {
               _updateElement(element.copyWith(content: value));
               _isModified = true;
             },
-            decoration: const InputDecoration(
-              border: OutlineInputBorder(),
-            ),
+            maxLines: element.type == LabelElementType.text ? 3 : 1,
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 24),
         ],
-        
+
         // Font Size
-        const Text('Font Size:', style: TextStyle(fontWeight: FontWeight.bold)),
-        Slider(
-          value: element.fontSize.toDouble(),
-          min: 1,
-          max: 8,
-          divisions: 7,
-          label: element.fontSize.toString(),
-          onChanged: (value) {
-            _updateElement(element.copyWith(fontSize: value.round()));
-            _isModified = true;
-          },
+        Text(
+          'Font Size',
+          style: textTheme.labelLarge?.copyWith(fontWeight: FontWeight.bold),
         ),
-        
+        Row(
+          children: [
+            Expanded(
+              child: Slider(
+                value: element.fontSize.toDouble(),
+                min: 1,
+                max: 8,
+                divisions: 7,
+                label: element.fontSize.toString(),
+                activeColor: colorScheme.primary,
+                inactiveColor: colorScheme.surfaceVariant,
+                onChanged: (value) {
+                  _updateElement(element.copyWith(fontSize: value.round()));
+                  _isModified = true;
+                },
+              ),
+            ),
+            Container(
+              width: 32,
+              alignment: Alignment.center,
+              child: Text(
+                element.fontSize.toString(),
+                style:
+                    textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        ),
+
         // Bold
-        CheckboxListTile(
+        SwitchListTile(
           title: const Text('Bold'),
           value: element.isBold,
           onChanged: (value) {
-            _updateElement(element.copyWith(isBold: value ?? false));
+            _updateElement(element.copyWith(isBold: value));
             _isModified = true;
           },
+          tileColor: colorScheme.surface,
+          contentPadding: EdgeInsets.zero,
         ),
-        
+
         // Visible
-        CheckboxListTile(
+        SwitchListTile(
           title: const Text('Visible'),
           value: element.isVisible,
           onChanged: (value) {
-            _updateElement(element.copyWith(isVisible: value ?? true));
+            _updateElement(element.copyWith(isVisible: value));
             _isModified = true;
           },
+          tileColor: colorScheme.surface,
+          contentPadding: EdgeInsets.zero,
         ),
-        
+
+        const Divider(height: 32),
+
         // Position
-        const Text('Position:', style: TextStyle(fontWeight: FontWeight.bold)),
+        Text(
+          'Position',
+          style: textTheme.labelLarge?.copyWith(fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 8),
         Row(
           children: [
-            const Text('X:'),
             Expanded(
-              child: Slider(
-                value: element.x,
-                min: 0,
-                max: _labelConfig.widthMm * 8,
-                onChanged: (value) {
-                  _updateElement(element.copyWith(x: value));
-                  _isModified = true;
-                },
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('X: ${element.x.toInt()}', style: textTheme.bodySmall),
+                  Slider(
+                    value: element.x,
+                    min: 0,
+                    max: _labelConfig.widthMm * 8,
+                    activeColor: colorScheme.secondary,
+                    onChanged: (value) {
+                      _updateElement(element.copyWith(x: value));
+                      _isModified = true;
+                    },
+                  ),
+                ],
               ),
             ),
           ],
         ),
         Row(
           children: [
-            const Text('Y:'),
             Expanded(
-              child: Slider(
-                value: element.y,
-                min: 0,
-                max: _labelConfig.heightMm * 8,
-                onChanged: (value) {
-                  _updateElement(element.copyWith(y: value));
-                  _isModified = true;
-                },
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Y: ${element.y.toInt()}', style: textTheme.bodySmall),
+                  Slider(
+                    value: element.y,
+                    min: 0,
+                    max: _labelConfig.heightMm * 8,
+                    activeColor: colorScheme.secondary,
+                    onChanged: (value) {
+                      _updateElement(element.copyWith(y: value));
+                      _isModified = true;
+                    },
+                  ),
+                ],
               ),
             ),
           ],
         ),
-        
-        const SizedBox(height: 16),
-        
+
+        const SizedBox(height: 32),
+
         // Delete button
-        ElevatedButton.icon(
-          onPressed: () {
-            _deleteElement(element);
-          },
-          icon: const Icon(Icons.delete),
-          label: const Text('Delete'),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.red,
-            foregroundColor: Colors.white,
+        Center(
+          child: Material3Components.enhancedButton(
+            label: 'Delete Element',
+            icon: const Icon(Icons.delete_outline),
+            onPressed: () {
+              _deleteElement(element);
+            },
+            isPrimary: false,
+            style: OutlinedButton.styleFrom(
+              foregroundColor: colorScheme.error,
+              side: BorderSide(color: colorScheme.error),
+            ),
           ),
         ),
       ],
@@ -535,68 +689,124 @@ class _VisualLabelDesignerScreenState extends State<VisualLabelDesignerScreen> {
   }
 
   Widget _buildDesignProperties() {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Design Settings',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-            ),
+          Row(
+            children: [
+              Icon(Icons.design_services, color: colorScheme.secondary),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Design Settings',
+                      style: textTheme.titleSmall
+                          ?.copyWith(fontWeight: FontWeight.bold),
+                    ),
+                    Text(
+                      'Global properties',
+                      style: textTheme.labelSmall
+                          ?.copyWith(color: colorScheme.onSurfaceVariant),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 16),
-          
-          // Design name
-          const Text('Name:', style: TextStyle(fontWeight: FontWeight.bold)),
-          TextFormField(
+          const Divider(height: 32),
+          Material3Components.enhancedTextField(
+            label: 'Design Name',
             initialValue: _currentDesign.name,
+            prefixIcon: const Icon(Icons.label_outline),
             onChanged: (value) {
               _currentDesign = _currentDesign.copyWith(name: value);
               _isModified = true;
             },
-            decoration: const InputDecoration(
-              border: OutlineInputBorder(),
-            ),
           ),
           const SizedBox(height: 16),
-          
-          // Description
-          const Text('Description:', style: TextStyle(fontWeight: FontWeight.bold)),
-          TextFormField(
+          Material3Components.enhancedTextField(
+            label: 'Description',
             initialValue: _currentDesign.description,
+            prefixIcon: const Icon(Icons.description_outlined),
             onChanged: (value) {
               _currentDesign = _currentDesign.copyWith(description: value);
               _isModified = true;
             },
             maxLines: 3,
-            decoration: const InputDecoration(
-              border: OutlineInputBorder(),
+          ),
+          const SizedBox(height: 24),
+          Material3Components.enhancedCard(
+            elevation: 0,
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                children: [
+                  _buildInfoRow(Icons.print, 'Label Type', _labelConfig.name,
+                      colorScheme, textTheme),
+                  const SizedBox(height: 8),
+                  _buildInfoRow(
+                      Icons.aspect_ratio,
+                      'Size',
+                      '${_labelConfig.widthMm} × ${_labelConfig.heightMm} mm',
+                      colorScheme,
+                      textTheme),
+                  const SizedBox(height: 8),
+                  _buildInfoRow(
+                      Icons.layers,
+                      'Elements',
+                      '${_currentDesign.elements.length} items',
+                      colorScheme,
+                      textTheme),
+                ],
+              ),
             ),
           ),
-          const SizedBox(height: 16),
-          
-          // Label info
-          Text('Label: ${_labelConfig.name}'),
-          Text('Size: ${_labelConfig.widthMm}×${_labelConfig.heightMm}mm'),
-          Text('Elements: ${_currentDesign.elements.length}'),
         ],
       ),
     );
   }
 
+  Widget _buildInfoRow(IconData icon, String label, String value,
+      ColorScheme colorScheme, TextTheme textTheme) {
+    return Row(
+      children: [
+        Icon(icon, size: 16, color: colorScheme.onSurfaceVariant),
+        const SizedBox(width: 8),
+        Text(
+          '$label:',
+          style: textTheme.bodySmall
+              ?.copyWith(color: colorScheme.onSurfaceVariant),
+        ),
+        const SizedBox(width: 4),
+        Expanded(
+          child: Text(
+            value,
+            style: textTheme.bodySmall?.copyWith(fontWeight: FontWeight.bold),
+            textAlign: TextAlign.end,
+          ),
+        ),
+      ],
+    );
+  }
+
   void _addElementToCanvas(LabelElementType type, Offset? position) {
     final now = DateTime.now();
-    final elementId = '${type.toString().split('.').last}_${now.millisecondsSinceEpoch}';
-    
+    final elementId =
+        '${type.toString().split('.').last}_${now.millisecondsSinceEpoch}';
+
     // Default position (center if no position specified)
     final x = position?.dx ?? (_labelConfig.widthMm * 8) / 2;
     final y = position?.dy ?? (_labelConfig.heightMm * 8) / 2;
-    
+
     String content = _getDefaultContent(type);
-    
+
     final element = LabelElement(
       id: elementId,
       type: type,
@@ -606,7 +816,7 @@ class _VisualLabelDesignerScreenState extends State<VisualLabelDesignerScreen> {
       fontSize: _getDefaultFontSize(type),
       isBold: _getDefaultBold(type),
     );
-    
+
     setState(() {
       _currentDesign = _currentDesign.copyWith(
         elements: [..._currentDesign.elements, element],
@@ -690,7 +900,8 @@ class _VisualLabelDesignerScreenState extends State<VisualLabelDesignerScreen> {
 
   void _deleteElement(LabelElement element) {
     setState(() {
-      final elements = _currentDesign.elements.where((e) => e.id != element.id).toList();
+      final elements =
+          _currentDesign.elements.where((e) => e.id != element.id).toList();
       _currentDesign = _currentDesign.copyWith(elements: elements);
       _selectedElement = null;
       _isModified = true;
@@ -743,13 +954,16 @@ class _VisualLabelDesignerScreenState extends State<VisualLabelDesignerScreen> {
   }
 
   void _duplicateDesign() async {
-    final name = await _showNameDialog('Duplicate Design', _currentDesign.name + ' Copy');
+    final name = await _showNameDialog(
+        'Duplicate Design', _currentDesign.name + ' Copy');
     if (name != null) {
-      final duplicated = await _designService.duplicateDesign(_currentDesign, name);
+      final duplicated =
+          await _designService.duplicateDesign(_currentDesign, name);
       if (mounted) {
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(
-            builder: (context) => VisualLabelDesignerScreen(initialDesign: duplicated),
+            builder: (context) =>
+                VisualLabelDesignerScreen(initialDesign: duplicated),
           ),
         );
       }

@@ -5,6 +5,7 @@ import '../models/shipping_label.dart';
 import '../services/session_service.dart';
 import '../services/thermal_printer_service.dart';
 import '../services/gemini_ai_service.dart';
+import '../widgets/material3_components.dart';
 import 'label_editor_screen.dart';
 import 'thermal_printer_settings_screen.dart';
 
@@ -90,29 +91,29 @@ class _SessionDetailScreenState extends State<SessionDetailScreen> {
 
   void _selectReadyLabels() {
     setState(() {
-      _selectedLabelIds.addAll(
-        _session.labels
-            .where((label) => label.isReadyToPrint())
-            .map((label) => label.id)
-      );
+      _selectedLabelIds.addAll(_session.labels
+          .where((label) => label.isReadyToPrint())
+          .map((label) => label.id));
     });
   }
 
-  bool get _isAllSelected => 
-      _session.labels.isNotEmpty && 
+  bool get _isAllSelected =>
+      _session.labels.isNotEmpty &&
       _selectedLabelIds.length == _session.labels.length;
 
   bool get _hasSelectedLabels => _selectedLabelIds.isNotEmpty;
 
   int get _selectedReadyCount => _session.labels
-      .where((label) => _selectedLabelIds.contains(label.id) && label.isReadyToPrint())
+      .where((label) =>
+          _selectedLabelIds.contains(label.id) && label.isReadyToPrint())
       .length;
 
   Future<void> _printSelectedLabels() async {
     final selectedLabels = _session.labels
-        .where((label) => _selectedLabelIds.contains(label.id) && label.isReadyToPrint())
+        .where((label) =>
+            _selectedLabelIds.contains(label.id) && label.isReadyToPrint())
         .toList();
-    
+
     if (selectedLabels.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -136,22 +137,24 @@ class _SessionDetailScreenState extends State<SessionDetailScreen> {
 
     try {
       // Get the selected labels
-      final selectedLabels = _session.labels.where((label) => 
-          _selectedLabelIds.contains(label.id)).toList();
-      
+      final selectedLabels = _session.labels
+          .where((label) => _selectedLabelIds.contains(label.id))
+          .toList();
+
       // Print selected labels using ESC/POS service
       final success = await _printerService.printSelectedLabels(selectedLabels);
-      
+
       if (success) {
         setState(() {
           _isSelectionMode = false;
           _selectedLabelIds.clear();
         });
-        
+
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('${selectedLabels.length} labels printed successfully!'),
+              content:
+                  Text('${selectedLabels.length} labels printed successfully!'),
               backgroundColor: Colors.green,
             ),
           );
@@ -183,8 +186,9 @@ class _SessionDetailScreenState extends State<SessionDetailScreen> {
   }
 
   Future<void> _printAllReadyLabels() async {
-    final readyLabels = _session.labels.where((label) => label.isReadyToPrint()).toList();
-    
+    final readyLabels =
+        _session.labels.where((label) => label.isReadyToPrint()).toList();
+
     if (readyLabels.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -209,12 +213,13 @@ class _SessionDetailScreenState extends State<SessionDetailScreen> {
     try {
       // Print all ready labels using ESC/POS service
       final success = await _printerService.printSelectedLabels(readyLabels);
-      
+
       if (success) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('${readyLabels.length} labels printed successfully!'),
+              content:
+                  Text('${readyLabels.length} labels printed successfully!'),
               backgroundColor: Colors.green,
             ),
           );
@@ -250,7 +255,8 @@ class _SessionDetailScreenState extends State<SessionDetailScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Printer Not Connected'),
-        content: const Text('Please connect to your XPrinter XP-365B before printing.'),
+        content: const Text(
+            'Please connect to your XPrinter XP-365B before printing.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
@@ -331,7 +337,7 @@ class _SessionDetailScreenState extends State<SessionDetailScreen> {
 
   Future<void> _showAutoProcessDialog() async {
     final TextEditingController textController = TextEditingController();
-    
+
     await showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -368,14 +374,16 @@ class _SessionDetailScreenState extends State<SessionDetailScreen> {
                       controller: textController,
                       maxLines: 8,
                       decoration: const InputDecoration(
-                        hintText: 'Paste shipping information here...\n\nExample:\nTO: John Doe\n123 Main St, City, State 12345\n(555) 123-4567\n\nFROM: Jane Smith\n456 Oak Ave, Town, State 67890\n(555) 987-6543',
+                        hintText:
+                            'Paste shipping information here...\n\nExample:\nTO: John Doe\n123 Main St, City, State 12345\n(555) 123-4567\n\nFROM: Jane Smith\n456 Oak Ave, Town, State 67890\n(555) 987-6543',
                         border: InputBorder.none,
                         contentPadding: EdgeInsets.all(12),
                       ),
                     ),
                     // Paste icon row
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 8),
                       decoration: const BoxDecoration(
                         border: Border(top: BorderSide(color: Colors.grey)),
                       ),
@@ -384,19 +392,22 @@ class _SessionDetailScreenState extends State<SessionDetailScreen> {
                           IconButton(
                             onPressed: () async {
                               try {
-                                final clipboardData = await Clipboard.getData(Clipboard.kTextPlain);
+                                final clipboardData = await Clipboard.getData(
+                                    Clipboard.kTextPlain);
                                 if (clipboardData?.text != null) {
                                   textController.text = clipboardData!.text!;
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     const SnackBar(
-                                      content: Text('Content pasted from clipboard'),
+                                      content:
+                                          Text('Content pasted from clipboard'),
                                       backgroundColor: Colors.green,
                                     ),
                                   );
                                 } else {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     const SnackBar(
-                                      content: Text('No text found in clipboard'),
+                                      content:
+                                          Text('No text found in clipboard'),
                                       backgroundColor: Colors.orange,
                                     ),
                                   );
@@ -470,12 +481,13 @@ class _SessionDetailScreenState extends State<SessionDetailScreen> {
 
       // Process text with Gemini AI
       final extractedLabel = await _geminiService.extractShippingInfo(text);
-      
+
       if (extractedLabel != null) {
         // Navigate to label editor with pre-filled data
         final result = await Navigator.of(context).push(
           MaterialPageRoute(
-            builder: (context) => LabelEditorScreen(label: extractedLabel, isNew: true),
+            builder: (context) =>
+                LabelEditorScreen(label: extractedLabel, isNew: true),
           ),
         );
 
@@ -484,7 +496,7 @@ class _SessionDetailScreenState extends State<SessionDetailScreen> {
             _session.addLabel(extractedLabel);
           });
           await _saveSession();
-          
+
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
@@ -498,7 +510,8 @@ class _SessionDetailScreenState extends State<SessionDetailScreen> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Could not extract shipping information from the text. Please try manual entry.'),
+              content: Text(
+                  'Could not extract shipping information from the text. Please try manual entry.'),
               backgroundColor: Colors.orange,
             ),
           );
@@ -542,7 +555,8 @@ class _SessionDetailScreenState extends State<SessionDetailScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Delete Label'),
-        content: Text('Are you sure you want to delete the label: ${label.getDisplayName()}?'),
+        content: Text(
+            'Are you sure you want to delete the label: ${label.getDisplayName()}?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
@@ -607,9 +621,12 @@ class _SessionDetailScreenState extends State<SessionDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
     return Scaffold(
       appBar: AppBar(
-        title: _isSelectionMode 
+        title: _isSelectionMode
             ? Text('${_selectedLabelIds.length} selected')
             : GestureDetector(
                 onTap: _editSessionName,
@@ -621,11 +638,13 @@ class _SessionDetailScreenState extends State<SessionDetailScreen> {
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                    const Icon(Icons.edit, size: 18),
+                    const SizedBox(width: 8),
+                    Icon(Icons.edit, size: 18, color: colorScheme.onSurface),
                   ],
                 ),
               ),
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        backgroundColor: colorScheme.surface,
+        scrolledUnderElevation: 3,
         leading: _isSelectionMode
             ? IconButton(
                 onPressed: _toggleSelectionMode,
@@ -654,32 +673,34 @@ class _SessionDetailScreenState extends State<SessionDetailScreen> {
                       PopupMenuItem(
                         value: 'select_all',
                         enabled: !_isAllSelected,
-                        child: const Row(
+                        child: Row(
                           children: [
-                            Icon(Icons.select_all),
-                            SizedBox(width: 8),
-                            Text('Select All'),
+                            Icon(Icons.select_all,
+                                color: colorScheme.onSurface),
+                            const SizedBox(width: 8),
+                            const Text('Select All'),
                           ],
                         ),
                       ),
                       PopupMenuItem(
                         value: 'deselect_all',
                         enabled: _hasSelectedLabels,
-                        child: const Row(
+                        child: Row(
                           children: [
-                            Icon(Icons.deselect),
-                            SizedBox(width: 8),
-                            Text('Deselect All'),
+                            Icon(Icons.deselect, color: colorScheme.onSurface),
+                            const SizedBox(width: 8),
+                            const Text('Deselect All'),
                           ],
                         ),
                       ),
                       PopupMenuItem(
                         value: 'select_ready',
-                        child: const Row(
+                        child: Row(
                           children: [
-                            Icon(Icons.check_circle),
-                            SizedBox(width: 8),
-                            Text('Select Ready'),
+                            Icon(Icons.check_circle_outline,
+                                color: colorScheme.onSurface),
+                            const SizedBox(width: 8),
+                            const Text('Select Ready'),
                           ],
                         ),
                       ),
@@ -698,11 +719,12 @@ class _SessionDetailScreenState extends State<SessionDetailScreen> {
                   onPressed: () {
                     Navigator.of(context).push(
                       MaterialPageRoute(
-                        builder: (context) => const ThermalPrinterSettingsScreen(),
+                        builder: (context) =>
+                            const ThermalPrinterSettingsScreen(),
                       ),
                     );
                   },
-                  icon: const Icon(Icons.settings),
+                  icon: const Icon(Icons.settings_outlined),
                   tooltip: 'Printer Settings',
                 ),
                 if (_session.labels.isNotEmpty)
@@ -724,48 +746,81 @@ class _SessionDetailScreenState extends State<SessionDetailScreen> {
           Column(
             children: [
               // Session Info Card
-              Card(
-                margin: const EdgeInsets.all(8.0),
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Session Information',
-                              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.bold,
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Material3Components.enhancedCard(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Session Information',
+                                style: textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: colorScheme.primary,
+                                ),
                               ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text('Total Labels: ${_session.totalLabels}'),
-                            Text('Ready to Print: ${_session.readyToPrintCount}'),
-                            Text('Created: ${_formatDate(_session.createdAt)}'),
-                            Text('Updated: ${_formatDate(_session.updatedAt)}'),
-                          ],
+                              const SizedBox(height: 8),
+                              _buildInfoRow(
+                                  Icons.label_outline,
+                                  'Total Labels: ${_session.totalLabels}',
+                                  colorScheme,
+                                  textTheme),
+                              const SizedBox(height: 4),
+                              _buildInfoRow(
+                                  Icons.print_outlined,
+                                  'Ready to Print: ${_session.readyToPrintCount}',
+                                  colorScheme,
+                                  textTheme),
+                              const SizedBox(height: 4),
+                              _buildInfoRow(
+                                  Icons.calendar_today_outlined,
+                                  'Created: ${_formatDate(_session.createdAt)}',
+                                  colorScheme,
+                                  textTheme),
+                              const SizedBox(height: 4),
+                              _buildInfoRow(
+                                  Icons.update,
+                                  'Updated: ${_formatDate(_session.updatedAt)}',
+                                  colorScheme,
+                                  textTheme),
+                            ],
+                          ),
                         ),
-                      ),
-                      Icon(
-                        _session.allLabelsReady
-                            ? Icons.check_circle
-                            : _session.hasReadyLabels
-                                ? Icons.warning
-                                : Icons.error,
-                        color: _session.allLabelsReady
-                            ? Colors.green
-                            : _session.hasReadyLabels
-                                ? Colors.orange
-                                : Colors.red,
-                        size: 32,
-                      ),
-                    ],
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: _session.allLabelsReady
+                                ? colorScheme.primaryContainer
+                                : _session.hasReadyLabels
+                                    ? colorScheme.tertiaryContainer
+                                    : colorScheme.errorContainer,
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: Icon(
+                            _session.allLabelsReady
+                                ? Icons.check_circle
+                                : _session.hasReadyLabels
+                                    ? Icons.warning_amber_rounded
+                                    : Icons.error_outline,
+                            color: _session.allLabelsReady
+                                ? colorScheme.onPrimaryContainer
+                                : _session.hasReadyLabels
+                                    ? colorScheme.onTertiaryContainer
+                                    : colorScheme.onErrorContainer,
+                            size: 32,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
-              
+
               // Labels List
               Expanded(
                 child: _session.labels.isEmpty
@@ -773,100 +828,123 @@ class _SessionDetailScreenState extends State<SessionDetailScreen> {
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            const Icon(
-                              Icons.label_off,
-                              size: 64,
-                              color: Colors.grey,
+                            Icon(
+                              Icons.label_off_outlined,
+                              size: 80,
+                              color: colorScheme.surfaceVariant,
                             ),
                             const SizedBox(height: 16),
-                            const Text(
+                            Text(
                               'No labels in this session',
-                              style: TextStyle(fontSize: 18, color: Colors.grey),
+                              style: textTheme.titleLarge?.copyWith(
+                                color: colorScheme.onSurfaceVariant,
+                              ),
                             ),
                             const SizedBox(height: 8),
-                            const Text(
+                            Text(
                               'Add your first shipping label',
-                              style: TextStyle(color: Colors.grey),
+                              style: textTheme.bodyMedium?.copyWith(
+                                color: colorScheme.onSurfaceVariant,
+                              ),
                             ),
                             const SizedBox(height: 24),
-                            ElevatedButton.icon(
+                            Material3Components.enhancedButton(
                               onPressed: _addNewLabel,
                               icon: const Icon(Icons.add),
-                              label: const Text('Add Label'),
+                              label: 'Add Label',
+                              isPrimary: true,
                             ),
                           ],
                         ),
                       )
-                    : ListView.builder(
-                        padding: const EdgeInsets.all(8.0),
+                    : ListView.separated(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 8),
                         itemCount: _session.labels.length,
+                        separatorBuilder: (context, index) =>
+                            const SizedBox(height: 8),
                         itemBuilder: (context, index) {
                           final label = _session.labels[index];
-                          final isSelected = _selectedLabelIds.contains(label.id);
-                          
-                          return Card(
-                            margin: const EdgeInsets.symmetric(vertical: 4),
-                            color: _isSelectionMode && isSelected 
-                                ? Theme.of(context).colorScheme.primaryContainer.withOpacity(0.3)
-                                : null,
-                            child: ListTile(
-                              leading: _isSelectionMode
-                                  ? Checkbox(
+                          final isSelected =
+                              _selectedLabelIds.contains(label.id);
+                          final isReady = label.isReadyToPrint();
+
+                          return Material3Components.enhancedCard(
+                            onTap: _isSelectionMode
+                                ? () => _toggleLabelSelection(label.id)
+                                : () => _editLabel(label),
+                            isSelected: isSelected,
+                            child: Padding(
+                              padding: const EdgeInsets.all(12.0),
+                              child: Row(
+                                children: [
+                                  if (_isSelectionMode)
+                                    Checkbox(
                                       value: isSelected,
                                       onChanged: (value) {
                                         _toggleLabelSelection(label.id);
                                       },
                                     )
-                                  : CircleAvatar(
-                                      backgroundColor: label.isReadyToPrint()
-                                          ? Colors.green
-                                          : Colors.orange,
+                                  else
+                                    Container(
+                                      width: 40,
+                                      height: 40,
+                                      decoration: BoxDecoration(
+                                        color: isReady
+                                            ? colorScheme.primaryContainer
+                                            : colorScheme.errorContainer,
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
                                       child: Icon(
-                                        label.isReadyToPrint()
+                                        isReady
                                             ? Icons.check
-                                            : Icons.warning,
-                                        color: Colors.white,
+                                            : Icons.priority_high,
+                                        color: isReady
+                                            ? colorScheme.onPrimaryContainer
+                                            : colorScheme.onErrorContainer,
+                                        size: 20,
                                       ),
                                     ),
-                              title: Row(
-                                children: [
-                                  Expanded(child: Text(label.getDisplayName())),
-                                  if (!_isSelectionMode && !label.isReadyToPrint())
-                                    const Icon(
-                                      Icons.warning,
-                                      color: Colors.orange,
-                                      size: 18,
-                                    )
-                                  else if (!_isSelectionMode && label.isReadyToPrint())
-                                    const Icon(
-                                      Icons.check_circle,
-                                      color: Colors.green,
-                                      size: 18,
+                                  const SizedBox(width: 16),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          label.getDisplayName(),
+                                          style:
+                                              textTheme.titleMedium?.copyWith(
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          'Created: ${_formatDate(label.createdAt)}',
+                                          style: textTheme.bodySmall?.copyWith(
+                                            color: colorScheme.onSurfaceVariant,
+                                          ),
+                                        ),
+                                        if (!isReady)
+                                          Padding(
+                                            padding:
+                                                const EdgeInsets.only(top: 4.0),
+                                            child: Text(
+                                              'Incomplete data',
+                                              style:
+                                                  textTheme.bodySmall?.copyWith(
+                                                color: colorScheme.error,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                          ),
+                                      ],
                                     ),
-                                ],
-                              ),
-                              subtitle: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text('Created: ${_formatDate(label.createdAt)}'),
-                                  if (_isSelectionMode)
-                                    Text(
-                                      label.isReadyToPrint() ? 'Ready to print' : 'Incomplete data',
-                                      style: TextStyle(
-                                        color: label.isReadyToPrint() ? Colors.green : Colors.orange,
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                    )
-                                  else if (!label.isReadyToPrint())
-                                    const Text(
-                                      'Incomplete data',
-                                      style: TextStyle(color: Colors.orange),
-                                    ),
-                                ],
-                              ),
-                              trailing: _isSelectionMode 
-                                  ? null
-                                  : PopupMenuButton<String>(
+                                  ),
+                                  if (!_isSelectionMode)
+                                    PopupMenuButton<String>(
+                                      icon: Icon(Icons.more_vert,
+                                          color: colorScheme.onSurfaceVariant),
                                       onSelected: (value) {
                                         switch (value) {
                                           case 'edit':
@@ -882,27 +960,30 @@ class _SessionDetailScreenState extends State<SessionDetailScreen> {
                                           value: 'edit',
                                           child: Row(
                                             children: [
-                                              Icon(Icons.edit),
+                                              Icon(Icons.edit_outlined),
                                               SizedBox(width: 8),
                                               Text('Edit'),
                                             ],
                                           ),
                                         ),
-                                        const PopupMenuItem(
+                                        PopupMenuItem(
                                           value: 'delete',
                                           child: Row(
                                             children: [
-                                              Icon(Icons.delete, color: Colors.red),
-                                              SizedBox(width: 8),
-                                              Text('Delete'),
+                                              Icon(Icons.delete_outline,
+                                                  color: colorScheme.error),
+                                              const SizedBox(width: 8),
+                                              Text('Delete',
+                                                  style: TextStyle(
+                                                      color:
+                                                          colorScheme.error)),
                                             ],
                                           ),
                                         ),
                                       ],
                                     ),
-                              onTap: _isSelectionMode 
-                                  ? () => _toggleLabelSelection(label.id)
-                                  : () => _editLabel(label),
+                                ],
+                              ),
                             ),
                           );
                         },
@@ -920,59 +1001,80 @@ class _SessionDetailScreenState extends State<SessionDetailScreen> {
         ],
       ),
       bottomSheet: _isSelectionMode && _hasSelectedLabels
-          ? Container(
-              height: 80,
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surface,
-                border: Border(
-                  top: BorderSide(color: Theme.of(context).dividerColor),
-                ),
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          '${_selectedLabelIds.length} labels selected',
-                          style: Theme.of(context).textTheme.titleSmall,
-                        ),
-                        if (_selectedReadyCount > 0)
+          ? Material3Components.showEnhancedBottomSheet(
+              context: context,
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
                           Text(
-                            '$_selectedReadyCount ready to print',
-                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: Colors.green,
-                            ),
+                            '${_selectedLabelIds.length} labels selected',
+                            style: textTheme.titleMedium,
                           ),
-                      ],
-                    ),
-                  ),
-                  if (_selectedReadyCount > 0) ...[
-                    const SizedBox(width: 16),
-                    ElevatedButton.icon(
-                      onPressed: _isLoading ? null : _printSelectedLabels,
-                      icon: const Icon(Icons.print),
-                      label: const Text('Print'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.green,
-                        foregroundColor: Colors.white,
+                          if (_selectedReadyCount > 0)
+                            Text(
+                              '$_selectedReadyCount ready to print',
+                              style: textTheme.bodySmall?.copyWith(
+                                color: colorScheme.primary,
+                              ),
+                            ),
+                          if (_selectedReadyCount == 0)
+                            Text(
+                              'No printable labels selected',
+                              style: textTheme.bodySmall?.copyWith(
+                                color: colorScheme.error,
+                              ),
+                            ),
+                        ],
                       ),
                     ),
+                    if (_selectedReadyCount > 0) ...[
+                      const SizedBox(width: 16),
+                      Material3Components.enhancedButton(
+                        onPressed: _isLoading ? null : _printSelectedLabels,
+                        icon: const Icon(Icons.print),
+                        label: 'Print',
+                        isPrimary: true,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: colorScheme.primary,
+                          foregroundColor: colorScheme.onPrimary,
+                        ),
+                      ),
+                    ],
                   ],
-                ],
+                ),
               ),
-            )
+            ) as Widget? // Cast is hacky but we need to match the signature or just inline the container
           : null,
-      floatingActionButton: _isSelectionMode 
+      floatingActionButton: _isSelectionMode
           ? null
-          : FloatingActionButton(
+          : FloatingActionButton.extended(
               onPressed: _addNewLabel,
               tooltip: 'Add New Label',
-              child: const Icon(Icons.add),
+              icon: const Icon(Icons.add),
+              label: const Text('Add Label'),
             ),
+    );
+  }
+
+  Widget _buildInfoRow(IconData icon, String text, ColorScheme colorScheme,
+      TextTheme textTheme) {
+    return Row(
+      children: [
+        Icon(icon, size: 16, color: colorScheme.onSurfaceVariant),
+        const SizedBox(width: 8),
+        Text(
+          text,
+          style: textTheme.bodyMedium?.copyWith(
+            color: colorScheme.onSurfaceVariant,
+          ),
+        ),
+      ],
     );
   }
 

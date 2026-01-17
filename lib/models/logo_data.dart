@@ -2,7 +2,8 @@ import 'dart:typed_data';
 
 /// Model to hold processed logo data ready for printing
 class LogoData {
-  final Uint8List imageData; // Processed image data (optimized for thermal printing)
+  final Uint8List
+      imageData; // Processed image data (optimized for thermal printing)
   final int width; // Width in dots/pixels
   final int height; // Height in dots/pixels
   final String format; // Image format (BMP, PCX, etc.)
@@ -38,19 +39,19 @@ class LogoData {
     const suffixes = ['B', 'KB', 'MB'];
     var size = fileSizeBytes.toDouble();
     var suffixIndex = 0;
-    
+
     while (size > 1024 && suffixIndex < suffixes.length - 1) {
       size /= 1024;
       suffixIndex++;
     }
-    
+
     return '${size.toStringAsFixed(size < 10 && suffixIndex > 0 ? 1 : 0)} ${suffixes[suffixIndex]}';
   }
 
   @override
   String toString() {
     return 'LogoData(${width}x${height}px, ${widthMm.toStringAsFixed(1)}x${heightMm.toStringAsFixed(1)}mm, '
-           '$format, ${fileSizeFormatted})';
+        '$format, $fileSizeFormatted)';
   }
 
   @override

@@ -36,7 +36,8 @@ class _SessionsListScreenState extends State<SessionsListScreen> {
     try {
       final sessions = await _sessionService.loadSessions();
       setState(() {
-        _sessions = sessions..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+        _sessions = sessions
+          ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
       });
     } catch (e) {
       if (mounted) {
@@ -56,7 +57,8 @@ class _SessionsListScreenState extends State<SessionsListScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Delete Session'),
-        content: Text('Are you sure you want to delete the session: ${session.getDisplayName()}?'),
+        content: Text(
+            'Are you sure you want to delete the session: ${session.getDisplayName()}?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
@@ -135,7 +137,7 @@ class _SessionsListScreenState extends State<SessionsListScreen> {
       final newSession = PrintSession.empty(sessionName: sessionName);
       await _sessionService.addSession(newSession);
       await _loadSessions();
-      
+
       if (mounted) {
         // Navigate to the new session
         Navigator.of(context).push(
@@ -149,18 +151,24 @@ class _SessionsListScreenState extends State<SessionsListScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Print Sessions'),
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        backgroundColor: colorScheme.surface,
+        scrolledUnderElevation: 3,
         actions: [
           PopupMenuButton<String>(
+            icon: Icon(Icons.more_vert, color: colorScheme.onSurfaceVariant),
             onSelected: (value) {
               switch (value) {
                 case 'printer_settings':
                   Navigator.of(context).push(
                     MaterialPageRoute(
-                      builder: (context) => const ThermalPrinterSettingsScreen(),
+                      builder: (context) =>
+                          const ThermalPrinterSettingsScreen(),
                     ),
                   );
                   break;
@@ -273,108 +281,176 @@ class _SessionsListScreenState extends State<SessionsListScreen> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Icon(
+                      Icon(
                         Icons.print_disabled,
-                        size: 64,
-                        color: Colors.grey,
-                      ),
-                      const SizedBox(height: 16),
-                      const Text(
-                        'No sessions found',
-                        style: TextStyle(fontSize: 18, color: Colors.grey),
-                      ),
-                      const SizedBox(height: 8),
-                      const Text(
-                        'Create your first print session to get started',
-                        style: TextStyle(color: Colors.grey),
+                        size: 80,
+                        color: colorScheme.surfaceVariant,
                       ),
                       const SizedBox(height: 24),
-                      ElevatedButton.icon(
+                      Text(
+                        'No sessions found',
+                        style: textTheme.headlineSmall?.copyWith(
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Create your first print session to get started',
+                        style: textTheme.bodyMedium?.copyWith(
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                      const SizedBox(height: 32),
+                      Material3Components.enhancedButton(
                         onPressed: _createNewSession,
                         icon: const Icon(Icons.add),
-                        label: const Text('Create New Session'),
+                        label: 'Create New Session',
+                        isPrimary: true,
                       ),
                     ],
                   ),
                 )
               : RefreshIndicator(
                   onRefresh: _loadSessions,
-                  child: ListView.builder(
+                  child: ListView.separated(
+                    padding: const EdgeInsets.symmetric(vertical: 20),
                     itemCount: _sessions.length,
+                    separatorBuilder: (context, index) =>
+                        const SizedBox(height: 12),
                     itemBuilder: (context, index) {
                       final session = _sessions[index];
-                      return Card(
-                        margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        child: ListTile(
-                          leading: CircleAvatar(
-                            backgroundColor: session.allLabelsReady
-                                ? Colors.green
-                                : session.hasReadyLabels
-                                    ? Colors.orange  
-                                    : Colors.red,
-                            child: Icon(
-                              session.allLabelsReady
-                                  ? Icons.check
-                                  : session.hasReadyLabels
-                                      ? Icons.warning
-                                      : Icons.error,
-                              color: Colors.white,
-                            ),
-                          ),
-                          title: Text(session.getDisplayName()),
-                          subtitle: Column(
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: Material3Components.enhancedCard(
+                          onTap: () => _editSession(session),
+                          child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('Created: ${_formatDate(session.createdAt)}'),
-                              Text('Updated: ${_formatDate(session.updatedAt)}'),
-                              Text(session.getStatusText()),
-                            ],
-                          ),
-                          isThreeLine: true,
-                          trailing: PopupMenuButton<String>(
-                            onSelected: (value) {
-                              switch (value) {
-                                case 'edit':
-                                  _editSession(session);
-                                  break;
-                                case 'delete':
-                                  _deleteSession(session);
-                                  break;
-                              }
-                            },
-                            itemBuilder: (context) => [
-                              const PopupMenuItem(
-                                value: 'edit',
+                              Padding(
+                                padding:
+                                    const EdgeInsets.fromLTRB(16, 16, 16, 8),
                                 child: Row(
                                   children: [
-                                    Icon(Icons.edit),
-                                    SizedBox(width: 8),
-                                    Text('Edit'),
+                                    CircleAvatar(
+                                      backgroundColor: session.allLabelsReady
+                                          ? Colors.green.withOpacity(0.1)
+                                          : session.hasReadyLabels
+                                              ? Colors.orange.withOpacity(0.1)
+                                              : colorScheme.errorContainer,
+                                      child: Icon(
+                                        session.allLabelsReady
+                                            ? Icons.check_circle
+                                            : session.hasReadyLabels
+                                                ? Icons.warning_amber
+                                                : Icons.error_outline,
+                                        color: session.allLabelsReady
+                                            ? Colors.green
+                                            : session.hasReadyLabels
+                                                ? Colors.orange
+                                                : colorScheme.error,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 16),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            session.getDisplayName(),
+                                            style:
+                                                textTheme.titleMedium?.copyWith(
+                                              fontWeight: FontWeight.bold,
+                                              color: colorScheme.onSurface,
+                                            ),
+                                          ),
+                                          Text(
+                                            'Updated: ${_formatDate(session.updatedAt)}',
+                                            style:
+                                                textTheme.bodySmall?.copyWith(
+                                              color:
+                                                  colorScheme.onSurfaceVariant,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    PopupMenuButton<String>(
+                                      icon: Icon(Icons.more_horiz,
+                                          color: colorScheme.onSurfaceVariant),
+                                      onSelected: (value) {
+                                        switch (value) {
+                                          case 'edit':
+                                            _editSession(session);
+                                            break;
+                                          case 'delete':
+                                            _deleteSession(session);
+                                            break;
+                                        }
+                                      },
+                                      itemBuilder: (context) => [
+                                        const PopupMenuItem(
+                                          value: 'edit',
+                                          child: Row(
+                                            children: [
+                                              Icon(Icons.edit_outlined),
+                                              SizedBox(width: 8),
+                                              Text('Edit'),
+                                            ],
+                                          ),
+                                        ),
+                                        PopupMenuItem(
+                                          value: 'delete',
+                                          child: Row(
+                                            children: [
+                                              Icon(Icons.delete_outline,
+                                                  color: colorScheme.error),
+                                              const SizedBox(width: 8),
+                                              Text('Delete',
+                                                  style: TextStyle(
+                                                      color:
+                                                          colorScheme.error)),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
                                   ],
                                 ),
                               ),
-                              const PopupMenuItem(
-                                value: 'delete',
+                              const Divider(height: 1),
+                              Padding(
+                                padding: const EdgeInsets.all(16),
                                 child: Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
                                   children: [
-                                    Icon(Icons.delete, color: Colors.red),
-                                    SizedBox(width: 8),
-                                    Text('Delete'),
+                                    Text(
+                                      session.getStatusText(),
+                                      style: textTheme.labelLarge?.copyWith(
+                                        color: colorScheme.primary,
+                                      ),
+                                    ),
+                                    Icon(
+                                      Icons.arrow_forward,
+                                      size: 16,
+                                      color: colorScheme.outline,
+                                    ),
                                   ],
                                 ),
                               ),
                             ],
                           ),
-                          onTap: () => _editSession(session),
                         ),
                       );
                     },
                   ),
                 ),
-      floatingActionButton: FloatingActionButton(
+      floatingActionButton: FloatingActionButton.extended(
         onPressed: _createNewSession,
         tooltip: 'Create New Session',
-        child: const Icon(Icons.add),
+        icon: const Icon(Icons.add),
+        label: const Text('New Session'),
       ),
     );
   }

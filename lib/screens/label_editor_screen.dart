@@ -3,6 +3,7 @@ import '../models/shipping_label.dart';
 import '../models/contact_info.dart';
 import '../widgets/contact_info_form.dart';
 import '../services/from_contact_service.dart';
+import '../widgets/material3_components.dart';
 import 'visual_label_designer_screen.dart';
 
 class LabelEditorScreen extends StatefulWidget {
@@ -132,12 +133,16 @@ class _LabelEditorScreenState extends State<LabelEditorScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
     return WillPopScope(
       onWillPop: _onWillPop,
       child: Scaffold(
         appBar: AppBar(
           title: Text(widget.isNew ? 'New Label' : 'Edit Label'),
-          backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+          backgroundColor: colorScheme.surface,
+          scrolledUnderElevation: 3,
           actions: [
             IconButton(
               onPressed: () {
@@ -147,15 +152,17 @@ class _LabelEditorScreenState extends State<LabelEditorScreen> {
                   ),
                 );
               },
-              icon: const Icon(Icons.design_services),
+              icon: const Icon(Icons.design_services_outlined),
               tooltip: 'Visual Designer',
             ),
             TextButton(
               onPressed: _saveLabel,
-              child: const Text(
+              child: Text(
                 'SAVE',
-                style:
-                    TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                style: textTheme.labelLarge?.copyWith(
+                  color: colorScheme.primary,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
           ],
@@ -163,33 +170,48 @@ class _LabelEditorScreenState extends State<LabelEditorScreen> {
         body: Form(
           key: _formKey,
           child: SingleChildScrollView(
-            padding: const EdgeInsets.all(8.0),
+            padding: const EdgeInsets.all(16.0),
             child: Column(
               children: [
                 // Label Info Card
                 if (!widget.isNew)
-                  Card(
-                    margin: const EdgeInsets.all(8.0),
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Label Information',
-                            style: Theme.of(context)
-                                .textTheme
-                                .titleMedium
-                                ?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text('ID: ${_label.id}'),
-                          Text('Created: ${_formatDate(_label.createdAt)}'),
-                          Text(
-                              'Status: ${_label.isReadyToPrint() ? "Ready to Print" : "Incomplete"}'),
-                        ],
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 16.0),
+                    child: Material3Components.enhancedCard(
+                      child: Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Label Information',
+                              style: textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: colorScheme.primary,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            _buildInfoRow(Icons.fingerprint, 'ID: ${_label.id}',
+                                colorScheme, textTheme),
+                            const SizedBox(height: 4),
+                            _buildInfoRow(
+                                Icons.calendar_today,
+                                'Created: ${_formatDate(_label.createdAt)}',
+                                colorScheme,
+                                textTheme),
+                            const SizedBox(height: 4),
+                            _buildInfoRow(
+                                _label.isReadyToPrint()
+                                    ? Icons.check_circle
+                                    : Icons.warning,
+                                'Status: ${_label.isReadyToPrint() ? "Ready to Print" : "Incomplete"}',
+                                colorScheme,
+                                textTheme,
+                                iconColor: _label.isReadyToPrint()
+                                    ? Colors.green
+                                    : Colors.orange),
+                          ],
+                        ),
                       ),
                     ),
                   ),
@@ -213,8 +235,7 @@ class _LabelEditorScreenState extends State<LabelEditorScreen> {
                 const SizedBox(height: 16),
 
                 // COD Settings Card
-                Card(
-                  margin: const EdgeInsets.all(8.0),
+                Material3Components.enhancedCard(
                   child: Padding(
                     padding: const EdgeInsets.all(16.0),
                     child: Column(
@@ -222,27 +243,25 @@ class _LabelEditorScreenState extends State<LabelEditorScreen> {
                       children: [
                         Row(
                           children: [
-                            const Icon(Icons.payments, color: Colors.green),
+                            Icon(Icons.payments_outlined,
+                                color: colorScheme.primary),
                             const SizedBox(width: 8),
                             Text(
                               'Cash on Delivery (COD)',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .titleMedium
-                                  ?.copyWith(
-                                    fontWeight: FontWeight.bold,
-                                  ),
+                              style: textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ],
                         ),
                         const SizedBox(height: 16),
-                        CheckboxListTile(
+                        SwitchListTile(
                           title: const Text('Enable COD'),
                           subtitle: const Text('Customer will pay on delivery'),
                           value: _label.codEnabled,
                           onChanged: (value) {
                             setState(() {
-                              _label.codEnabled = value ?? false;
+                              _label.codEnabled = value;
                               _hasChanges = true;
                               // Clear amount if COD is disabled
                               if (!_label.codEnabled) {
@@ -253,20 +272,18 @@ class _LabelEditorScreenState extends State<LabelEditorScreen> {
                           },
                           secondary: const Icon(Icons.check_circle_outline),
                           contentPadding: EdgeInsets.zero,
+                          activeColor: colorScheme.primary,
                         ),
                         if (_label.codEnabled) ...[
                           const SizedBox(height: 16),
-                          TextFormField(
+                          Material3Components.enhancedTextField(
                             controller: _codAmountController,
-                            decoration: const InputDecoration(
-                              labelText: 'COD Amount',
-                              hintText: '0.00',
-                              prefixText: 'Rs ',
-                              border: OutlineInputBorder(),
-                              prefixIcon: Icon(Icons.attach_money),
-                              helperText:
-                                  'Enter amount in LKR (Sri Lankan Rupee)',
-                            ),
+                            label: 'COD Amount',
+                            hint: '0.00',
+                            prefixIcon: const Icon(Icons
+                                .currency_rupee), // Using generic currency or Rupee icon as requested
+                            helperText:
+                                'Enter amount in LKR (Sri Lankan Rupee)',
                             keyboardType: const TextInputType.numberWithOptions(
                                 decimal: true),
                             validator: (value) {
@@ -289,25 +306,29 @@ class _LabelEditorScreenState extends State<LabelEditorScreen> {
                               });
                             },
                           ),
-                          const SizedBox(height: 8),
+                          const SizedBox(height: 12),
                           Container(
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
-                              color: Colors.green.shade50,
+                              color: colorScheme.tertiaryContainer
+                                  .withOpacity(0.5),
                               borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: Colors.green.shade200),
+                              border: Border.all(
+                                  color: colorScheme.tertiaryContainer),
                             ),
                             child: Row(
                               children: [
                                 Icon(Icons.info_outline,
-                                    color: Colors.green.shade700, size: 20),
+                                    color: colorScheme.onTertiaryContainer,
+                                    size: 20),
                                 const SizedBox(width: 8),
                                 Expanded(
                                   child: Text(
                                     _label.codAmount > 0
-                                        ? 'COD Amount: Rs ${_formatCodAmount(_label.codAmount)} will be printed on the label.'
-                                        : 'Enter the amount to be collected on delivery.',
-                                    style: const TextStyle(fontSize: 13),
+                                        ? 'COD Amount: Rs ${_formatCodAmount(_label.codAmount)} will be printed.'
+                                        : 'Enter the amount to be collected.',
+                                    style: textTheme.bodySmall?.copyWith(
+                                        color: colorScheme.onTertiaryContainer),
                                   ),
                                 ),
                               ],
@@ -322,8 +343,7 @@ class _LabelEditorScreenState extends State<LabelEditorScreen> {
                 const SizedBox(height: 16),
 
                 // Logo Settings Card
-                Card(
-                  margin: const EdgeInsets.all(8.0),
+                Material3Components.enhancedCard(
                   child: Padding(
                     padding: const EdgeInsets.all(16.0),
                     child: Column(
@@ -331,16 +351,14 @@ class _LabelEditorScreenState extends State<LabelEditorScreen> {
                       children: [
                         Row(
                           children: [
-                            const Icon(Icons.image, color: Colors.blue),
+                            Icon(Icons.image_outlined,
+                                color: colorScheme.primary),
                             const SizedBox(width: 8),
                             Text(
                               'Logo Settings',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .titleMedium
-                                  ?.copyWith(
-                                    fontWeight: FontWeight.bold,
-                                  ),
+                              style: textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ],
                         ),
@@ -358,25 +376,30 @@ class _LabelEditorScreenState extends State<LabelEditorScreen> {
                           },
                           secondary: const Icon(Icons.image_outlined),
                           contentPadding: EdgeInsets.zero,
+                          activeColor: colorScheme.primary,
                         ),
                         if (_label.includeLogo) ...[
                           const SizedBox(height: 8),
                           Container(
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
-                              color: Colors.blue.shade50,
+                              color:
+                                  colorScheme.surfaceVariant.withOpacity(0.4),
                               borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: Colors.blue.shade200),
+                              border:
+                                  Border.all(color: colorScheme.outlineVariant),
                             ),
                             child: Row(
                               children: [
                                 Icon(Icons.info_outline,
-                                    color: Colors.blue.shade700, size: 20),
+                                    color: colorScheme.onSurfaceVariant,
+                                    size: 20),
                                 const SizedBox(width: 8),
-                                const Expanded(
+                                Expanded(
                                   child: Text(
-                                    'Logo will be added from your default logo settings or FROM contact logo configuration.',
-                                    style: TextStyle(fontSize: 13),
+                                    'Logo will be added from your default logo settings.',
+                                    style: textTheme.bodySmall?.copyWith(
+                                        color: colorScheme.onSurfaceVariant),
                                   ),
                                 ),
                               ],
@@ -391,8 +414,7 @@ class _LabelEditorScreenState extends State<LabelEditorScreen> {
                 const SizedBox(height: 16),
 
                 // Thanks Message Card
-                Card(
-                  margin: const EdgeInsets.all(8.0),
+                Material3Components.enhancedCard(
                   child: Padding(
                     padding: const EdgeInsets.all(16.0),
                     child: Column(
@@ -400,16 +422,14 @@ class _LabelEditorScreenState extends State<LabelEditorScreen> {
                       children: [
                         Row(
                           children: [
-                            const Icon(Icons.favorite, color: Colors.pink),
+                            Icon(Icons.favorite_border,
+                                color: colorScheme.primary),
                             const SizedBox(width: 8),
                             Text(
                               'Thanks Message',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .titleMedium
-                                  ?.copyWith(
-                                    fontWeight: FontWeight.bold,
-                                  ),
+                              style: textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ],
                         ),
@@ -427,25 +447,30 @@ class _LabelEditorScreenState extends State<LabelEditorScreen> {
                           },
                           secondary: const Icon(Icons.message_outlined),
                           contentPadding: EdgeInsets.zero,
+                          activeColor: colorScheme.primary,
                         ),
                         if (_label.includeThanksMessage) ...[
                           const SizedBox(height: 8),
                           Container(
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
-                              color: Colors.pink.shade50,
+                              color:
+                                  colorScheme.surfaceVariant.withOpacity(0.4),
                               borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: Colors.pink.shade200),
+                              border:
+                                  Border.all(color: colorScheme.outlineVariant),
                             ),
                             child: Row(
                               children: [
                                 Icon(Icons.info_outline,
-                                    color: Colors.pink.shade700, size: 20),
+                                    color: colorScheme.onSurfaceVariant,
+                                    size: 20),
                                 const SizedBox(width: 8),
-                                const Expanded(
+                                Expanded(
                                   child: Text(
-                                    'Message will be centered at the bottom of the label. Edit the default message in Logo Manager settings.',
-                                    style: TextStyle(fontSize: 13),
+                                    'Message will be centered at the bottom of the label.',
+                                    style: textTheme.bodySmall?.copyWith(
+                                        color: colorScheme.onSurfaceVariant),
                                   ),
                                 ),
                               ],
@@ -457,7 +482,7 @@ class _LabelEditorScreenState extends State<LabelEditorScreen> {
                   ),
                 ),
 
-                const SizedBox(height: 24),
+                const SizedBox(height: 32),
 
                 // Action Buttons
                 Row(
@@ -470,30 +495,48 @@ class _LabelEditorScreenState extends State<LabelEditorScreen> {
                             Navigator.of(context).pop(false);
                           }
                         },
-                        child: const Text('Cancel'),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          side: BorderSide(color: colorScheme.outline),
+                        ),
+                        child: Text('Cancel',
+                            style: TextStyle(color: colorScheme.onSurface)),
                       ),
                     ),
                     const SizedBox(width: 16),
                     Expanded(
-                      child: ElevatedButton(
+                      child: Material3Components.enhancedButton(
                         onPressed: _saveLabel,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.blue,
-                          foregroundColor: Colors.white,
-                        ),
-                        child:
-                            Text(widget.isNew ? 'Add Label' : 'Save Changes'),
+                        label: widget.isNew ? 'Add Label' : 'Save Changes',
+                        isPrimary: true,
                       ),
                     ),
                   ],
                 ),
 
-                const SizedBox(height: 100), // Space for bottom padding
+                const SizedBox(height: 60),
               ],
             ),
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildInfoRow(
+      IconData icon, String text, ColorScheme colorScheme, TextTheme textTheme,
+      {Color? iconColor}) {
+    return Row(
+      children: [
+        Icon(icon, size: 16, color: iconColor ?? colorScheme.onSurfaceVariant),
+        const SizedBox(width: 8),
+        Text(
+          text,
+          style: textTheme.bodyMedium?.copyWith(
+            color: colorScheme.onSurfaceVariant,
+          ),
+        ),
+      ],
     );
   }
 
