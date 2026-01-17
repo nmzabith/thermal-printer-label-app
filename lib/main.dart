@@ -1,16 +1,28 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'screens/sessions_list_screen.dart';
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
+  // Load environment variables from .env file
+  try {
+    await dotenv.load(fileName: ".env");
+    print('Environment variables loaded successfully');
+    print(
+        'API Key loaded: ${dotenv.env['GEMINI_API_KEY']?.isNotEmpty ?? false}');
+  } catch (e) {
+    print('Error loading .env file: $e');
+    print('Make sure .env file exists in the project root');
+  }
+
   // Set Android-specific configurations
   SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
   ]);
-  
+
   // Set system UI overlay style for Android
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
@@ -20,7 +32,7 @@ void main() {
       systemNavigationBarIconBrightness: Brightness.dark,
     ),
   );
-  
+
   runApp(const PrinterApp());
 }
 
@@ -49,7 +61,7 @@ class PrinterApp extends StatelessWidget {
     return ThemeData(
       colorScheme: colorScheme,
       useMaterial3: true,
-      
+
       // Material 3 Typography with custom brand font weights
       textTheme: const TextTheme(
         displayLarge: TextStyle(fontWeight: FontWeight.bold),
@@ -62,7 +74,7 @@ class PrinterApp extends StatelessWidget {
         bodyMedium: TextStyle(fontWeight: FontWeight.normal),
         labelLarge: TextStyle(fontWeight: FontWeight.w500),
       ),
-      
+
       // Material 3 Shapes - more expressive rounded corners
       cardTheme: CardTheme(
         elevation: 2, // Reduced for Material 3 tonal elevation
@@ -71,16 +83,16 @@ class PrinterApp extends StatelessWidget {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16), // Larger radius for M3
         ),
-        ),
-        elevatedButtonTheme: ElevatedButtonThemeData(
-          style: ElevatedButton.styleFrom(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
-          ),
       ),
-      
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+          ),
+        ),
+      ),
+
       // Material 3 AppBar with surface tint
       appBarTheme: AppBarTheme(
         centerTitle: true,
@@ -95,7 +107,7 @@ class PrinterApp extends StatelessWidget {
           fontWeight: FontWeight.w500,
         ),
       ),
-      
+
       // Material 3 Button themes
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
@@ -104,7 +116,7 @@ class PrinterApp extends StatelessWidget {
           ),
         ),
       ),
-      
+
       // Material 3 FAB with larger corner radius
       floatingActionButtonTheme: FloatingActionButtonThemeData(
         shape: RoundedRectangleBorder(

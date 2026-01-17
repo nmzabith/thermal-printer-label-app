@@ -9,6 +9,8 @@ class LogoConfig {
   double height; // Logo height in mm
   double opacity; // Logo opacity (0.0 to 1.0)
   bool isEnabled; // Whether logo is enabled by default
+  String thanksMessage; // Custom thanks message to print at bottom
+  bool thanksMessageEnabled; // Whether to show thanks message
   DateTime? createdAt; // When the logo was added
   DateTime? updatedAt; // When the logo was last updated
 
@@ -20,6 +22,8 @@ class LogoConfig {
     this.height = 15.0, // Default 15mm height
     this.opacity = 1.0, // Full opacity by default
     this.isEnabled = false, // Disabled by default
+    this.thanksMessage = 'Thanks for shopping with us.',
+    this.thanksMessageEnabled = true,
     this.createdAt,
     this.updatedAt,
   }) {
@@ -36,18 +40,24 @@ class LogoConfig {
         height = 15.0,
         opacity = 1.0,
         isEnabled = false,
+        thanksMessage = 'Thanks for shopping with us.',
+        thanksMessageEnabled = true,
         createdAt = DateTime.now(),
         updatedAt = DateTime.now();
 
   // Copy constructor
   LogoConfig.from(LogoConfig other)
       : imagePath = other.imagePath,
-        imageData = other.imageData != null ? Uint8List.fromList(other.imageData!) : null,
+        imageData = other.imageData != null
+            ? Uint8List.fromList(other.imageData!)
+            : null,
         originalFileName = other.originalFileName,
         width = other.width,
         height = other.height,
         opacity = other.opacity,
         isEnabled = other.isEnabled,
+        thanksMessage = other.thanksMessage,
+        thanksMessageEnabled = other.thanksMessageEnabled,
         createdAt = other.createdAt,
         updatedAt = DateTime.now();
 
@@ -66,6 +76,8 @@ class LogoConfig {
       'height': height,
       'opacity': opacity,
       'isEnabled': isEnabled,
+      'thanksMessage': thanksMessage,
+      'thanksMessageEnabled': thanksMessageEnabled,
       'createdAt': createdAt?.toIso8601String(),
       'updatedAt': updatedAt?.toIso8601String(),
     };
@@ -80,8 +92,12 @@ class LogoConfig {
       height: (map['height'] ?? 15.0).toDouble(),
       opacity: (map['opacity'] ?? 1.0).toDouble(),
       isEnabled: map['isEnabled'] ?? false,
-      createdAt: map['createdAt'] != null ? DateTime.parse(map['createdAt']) : null,
-      updatedAt: map['updatedAt'] != null ? DateTime.parse(map['updatedAt']) : null,
+      thanksMessage: map['thanksMessage'] ?? 'Thanks for shopping with us.',
+      thanksMessageEnabled: map['thanksMessageEnabled'] ?? true,
+      createdAt:
+          map['createdAt'] != null ? DateTime.parse(map['createdAt']) : null,
+      updatedAt:
+          map['updatedAt'] != null ? DateTime.parse(map['updatedAt']) : null,
     );
   }
 
@@ -94,6 +110,8 @@ class LogoConfig {
     double? height,
     double? opacity,
     bool? isEnabled,
+    String? thanksMessage,
+    bool? thanksMessageEnabled,
   }) {
     return LogoConfig(
       imagePath: imagePath ?? this.imagePath,
@@ -103,6 +121,8 @@ class LogoConfig {
       height: height ?? this.height,
       opacity: opacity ?? this.opacity,
       isEnabled: isEnabled ?? this.isEnabled,
+      thanksMessage: thanksMessage ?? this.thanksMessage,
+      thanksMessageEnabled: thanksMessageEnabled ?? this.thanksMessageEnabled,
       createdAt: createdAt,
       updatedAt: DateTime.now(),
     );
@@ -111,7 +131,7 @@ class LogoConfig {
   @override
   String toString() {
     return 'LogoConfig(path: $imagePath, filename: $originalFileName, '
-           'size: ${width}x${height}mm, opacity: $opacity, enabled: $isEnabled)';
+        'size: ${width}x${height}mm, opacity: $opacity, enabled: $isEnabled)';
   }
 
   @override

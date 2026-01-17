@@ -8,8 +8,9 @@ export 'models/label_element.dart';
 export 'models/custom_label_design.dart';
 export 'models/logo_config.dart';
 export 'models/logo_data.dart';
+export 'models/gemini_model_status.dart';
 
-// Export all services  
+// Export all services
 export 'services/session_service.dart';
 export 'services/thermal_printer_service.dart';
 export 'services/from_contact_service.dart';
@@ -17,6 +18,8 @@ export 'services/label_config_service.dart';
 export 'services/font_settings_service.dart';
 export 'services/custom_label_design_service.dart';
 export 'services/logo_service.dart';
+export 'services/gemini_ai_service.dart';
+export 'services/gemini_model_rotation_service.dart';
 
 // Export all screens
 export 'screens/session_detail_screen.dart';

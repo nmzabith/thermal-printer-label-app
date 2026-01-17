@@ -55,10 +55,11 @@ class _LogoManagerScreenState extends State<LogoManagerScreen> {
       setState(() {
         _currentLogoConfig = config;
       });
-      
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Logo configuration saved successfully')),
+          const SnackBar(
+              content: Text('Logo configuration saved successfully')),
         );
       }
     } catch (e) {
@@ -142,7 +143,8 @@ class _LogoManagerScreenState extends State<LogoManagerScreen> {
                   ),
                   const SizedBox(height: 16),
                   ListTile(
-                    leading: const Icon(Icons.photo_library, color: Colors.blue),
+                    leading:
+                        const Icon(Icons.photo_library, color: Colors.blue),
                     title: const Text('Photo Gallery'),
                     subtitle: const Text('Choose from your photos'),
                     onTap: () {
@@ -183,7 +185,8 @@ class _LogoManagerScreenState extends State<LogoManagerScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Delete Logo'),
-        content: const Text('Are you sure you want to delete the current logo? This action cannot be undone.'),
+        content: const Text(
+            'Are you sure you want to delete the current logo? This action cannot be undone.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
@@ -202,7 +205,7 @@ class _LogoManagerScreenState extends State<LogoManagerScreen> {
       try {
         await _logoService.deleteLogo(_currentLogoConfig);
         await _saveLogo(LogoConfig.empty());
-        
+
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Logo deleted successfully')),
@@ -327,10 +330,19 @@ class _LogoManagerScreenState extends State<LogoManagerScreen> {
                               ],
                             ),
                             const SizedBox(height: 12),
-                            _buildInfoRow('File Name', _currentLogoConfig.originalFileName ?? 'Unknown'),
-                            _buildInfoRow('Size', '${_currentLogoConfig.width.toStringAsFixed(1)} x ${_currentLogoConfig.height.toStringAsFixed(1)} mm'),
-                            _buildInfoRow('Opacity', '${(_currentLogoConfig.opacity * 100).toInt()}%'),
-                            _buildInfoRow('Status', _currentLogoConfig.isEnabled ? 'Enabled' : 'Disabled'),
+                            _buildInfoRow(
+                                'File Name',
+                                _currentLogoConfig.originalFileName ??
+                                    'Unknown'),
+                            _buildInfoRow('Size',
+                                '${_currentLogoConfig.width.toStringAsFixed(1)} x ${_currentLogoConfig.height.toStringAsFixed(1)} mm'),
+                            _buildInfoRow('Opacity',
+                                '${(_currentLogoConfig.opacity * 100).toInt()}%'),
+                            _buildInfoRow(
+                                'Status',
+                                _currentLogoConfig.isEnabled
+                                    ? 'Enabled'
+                                    : 'Disabled'),
                           ],
                         ),
                       ),
@@ -341,17 +353,99 @@ class _LogoManagerScreenState extends State<LogoManagerScreen> {
                     Card(
                       child: SwitchListTile(
                         title: const Text('Enable Logo by Default'),
-                        subtitle: const Text('New labels will include the logo by default'),
+                        subtitle: const Text(
+                            'New labels will include the logo by default'),
                         value: _currentLogoConfig.isEnabled,
-                        onChanged: _isSaving ? null : (value) {
-                          final updatedConfig = _currentLogoConfig.copyWith(isEnabled: value);
-                          _saveLogo(updatedConfig);
-                        },
+                        onChanged: _isSaving
+                            ? null
+                            : (value) {
+                                final updatedConfig = _currentLogoConfig
+                                    .copyWith(isEnabled: value);
+                                _saveLogo(updatedConfig);
+                              },
                         secondary: const Icon(Icons.visibility),
                       ),
                     ),
                     const SizedBox(height: 24),
                   ],
+
+                  // Thanks Message Section (always visible)
+                  const Text(
+                    'Thanks Message',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              const Icon(Icons.favorite, color: Colors.pink),
+                              const SizedBox(width: 8),
+                              const Text(
+                                'Message at Bottom of Labels',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          SwitchListTile(
+                            title: const Text('Enable Thanks Message'),
+                            subtitle: const Text(
+                                'Show message on all labels by default'),
+                            value: _currentLogoConfig.thanksMessageEnabled,
+                            onChanged: _isSaving
+                                ? null
+                                : (value) {
+                                    final updatedConfig =
+                                        _currentLogoConfig.copyWith(
+                                      thanksMessageEnabled: value,
+                                    );
+                                    _saveLogo(updatedConfig);
+                                  },
+                            secondary: const Icon(Icons.message),
+                            contentPadding: EdgeInsets.zero,
+                          ),
+                          if (_currentLogoConfig.thanksMessageEnabled) ...[
+                            const SizedBox(height: 16),
+                            TextField(
+                              controller: TextEditingController(
+                                text: _currentLogoConfig.thanksMessage,
+                              ),
+                              decoration: const InputDecoration(
+                                labelText: 'Message',
+                                hintText: 'Thanks for shopping with us.',
+                                border: OutlineInputBorder(),
+                                helperText:
+                                    'This message will be centered at the bottom of each label',
+                              ),
+                              maxLines: 2,
+                              maxLength: 100,
+                              onChanged: (value) {
+                                final updatedConfig =
+                                    _currentLogoConfig.copyWith(
+                                  thanksMessage: value.trim(),
+                                );
+                                _saveLogo(updatedConfig);
+                              },
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 24),
 
                   // Action Buttons
                   const Text(
@@ -368,8 +462,12 @@ class _LogoManagerScreenState extends State<LogoManagerScreen> {
                     width: double.infinity,
                     child: ElevatedButton.icon(
                       onPressed: _isSaving ? null : _showImageSourceDialog,
-                      icon: Icon(_currentLogoConfig.hasLogo ? Icons.refresh : Icons.add_photo_alternate),
-                      label: Text(_currentLogoConfig.hasLogo ? 'Replace Logo' : 'Add Logo'),
+                      icon: Icon(_currentLogoConfig.hasLogo
+                          ? Icons.refresh
+                          : Icons.add_photo_alternate),
+                      label: Text(_currentLogoConfig.hasLogo
+                          ? 'Replace Logo'
+                          : 'Add Logo'),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.blue,
                         foregroundColor: Colors.white,
@@ -406,7 +504,8 @@ class _LogoManagerScreenState extends State<LogoManagerScreen> {
                         children: [
                           Row(
                             children: [
-                              Icon(Icons.lightbulb_outline, color: Colors.amber.shade700),
+                              Icon(Icons.lightbulb_outline,
+                                  color: Colors.amber.shade700),
                               const SizedBox(width: 8),
                               const Text(
                                 'Tips for Best Results',
@@ -418,11 +517,15 @@ class _LogoManagerScreenState extends State<LogoManagerScreen> {
                             ],
                           ),
                           const SizedBox(height: 12),
-                          const Text('• Use high contrast images (black on white works best)'),
-                          const Text('• Square or rectangular logos work better than complex shapes'),
+                          const Text(
+                              '• Use high contrast images (black on white works best)'),
+                          const Text(
+                              '• Square or rectangular logos work better than complex shapes'),
                           const Text('• Maximum file size: 500KB'),
-                          const Text('• Supported formats: JPG, PNG, BMP, GIF, WebP'),
-                          const Text('• Logo will be optimized for thermal printing automatically'),
+                          const Text(
+                              '• Supported formats: JPG, PNG, BMP, GIF, WebP'),
+                          const Text(
+                              '• Logo will be optimized for thermal printing automatically'),
                         ],
                       ),
                     ),
@@ -528,8 +631,12 @@ class _LogoSettingsSheetState extends State<LogoSettingsSheet> {
   late double _height;
   late double _opacity;
   late bool _isEnabled;
+  late String _thanksMessage;
+  late bool _thanksMessageEnabled;
   bool _maintainAspectRatio = true;
   late double _originalAspectRatio;
+  final TextEditingController _thanksMessageController =
+      TextEditingController();
 
   @override
   void initState() {
@@ -538,7 +645,16 @@ class _LogoSettingsSheetState extends State<LogoSettingsSheet> {
     _height = widget.config.height;
     _opacity = widget.config.opacity;
     _isEnabled = widget.config.isEnabled;
+    _thanksMessage = widget.config.thanksMessage;
+    _thanksMessageEnabled = widget.config.thanksMessageEnabled;
+    _thanksMessageController.text = _thanksMessage;
     _originalAspectRatio = _width / _height;
+  }
+
+  @override
+  void dispose() {
+    _thanksMessageController.dispose();
+    super.dispose();
   }
 
   void _save() {
@@ -547,6 +663,8 @@ class _LogoSettingsSheetState extends State<LogoSettingsSheet> {
       height: _height,
       opacity: _opacity,
       isEnabled: _isEnabled,
+      thanksMessage: _thanksMessageController.text.trim(),
+      thanksMessageEnabled: _thanksMessageEnabled,
     );
     widget.onSave(updatedConfig);
     Navigator.pop(context);
@@ -576,7 +694,7 @@ class _LogoSettingsSheetState extends State<LogoSettingsSheet> {
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
-              
+
               // Header
               Padding(
                 padding: const EdgeInsets.all(16),
@@ -602,7 +720,7 @@ class _LogoSettingsSheetState extends State<LogoSettingsSheet> {
                   ],
                 ),
               ),
-              
+
               // Content
               Expanded(
                 child: ListView(
@@ -624,7 +742,7 @@ class _LogoSettingsSheetState extends State<LogoSettingsSheet> {
                               ),
                             ),
                             const SizedBox(height: 16),
-                            
+
                             // Maintain Aspect Ratio Toggle
                             CheckboxListTile(
                               title: const Text('Maintain aspect ratio'),
@@ -636,7 +754,7 @@ class _LogoSettingsSheetState extends State<LogoSettingsSheet> {
                               },
                               contentPadding: EdgeInsets.zero,
                             ),
-                            
+
                             // Width Slider
                             Text('Width: ${_width.toStringAsFixed(1)} mm'),
                             Slider(
@@ -657,7 +775,7 @@ class _LogoSettingsSheetState extends State<LogoSettingsSheet> {
                                 });
                               },
                             ),
-                            
+
                             // Height Slider
                             Text('Height: ${_height.toStringAsFixed(1)} mm'),
                             Slider(
@@ -682,9 +800,9 @@ class _LogoSettingsSheetState extends State<LogoSettingsSheet> {
                         ),
                       ),
                     ),
-                    
+
                     const SizedBox(height: 16),
-                    
+
                     // Opacity Settings
                     Card(
                       child: Padding(
@@ -716,14 +834,15 @@ class _LogoSettingsSheetState extends State<LogoSettingsSheet> {
                         ),
                       ),
                     ),
-                    
+
                     const SizedBox(height: 16),
-                    
+
                     // Enable/Disable
                     Card(
                       child: SwitchListTile(
                         title: const Text('Enable by Default'),
-                        subtitle: const Text('New labels will include this logo'),
+                        subtitle:
+                            const Text('New labels will include this logo'),
                         value: _isEnabled,
                         onChanged: (value) {
                           setState(() {
@@ -733,7 +852,56 @@ class _LogoSettingsSheetState extends State<LogoSettingsSheet> {
                         secondary: const Icon(Icons.visibility),
                       ),
                     ),
-                    
+
+                    const SizedBox(height: 16),
+
+                    // Thanks Message Settings
+                    Card(
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Thanks Message',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            SwitchListTile(
+                              title: const Text('Show Thanks Message'),
+                              subtitle: const Text(
+                                  'Display message at bottom of labels'),
+                              value: _thanksMessageEnabled,
+                              onChanged: (value) {
+                                setState(() {
+                                  _thanksMessageEnabled = value;
+                                });
+                              },
+                              contentPadding: EdgeInsets.zero,
+                            ),
+                            if (_thanksMessageEnabled) ...[
+                              const SizedBox(height: 12),
+                              TextField(
+                                controller: _thanksMessageController,
+                                decoration: const InputDecoration(
+                                  labelText: 'Message',
+                                  hintText: 'Thanks for shopping with us.',
+                                  border: OutlineInputBorder(),
+                                  helperText:
+                                      'This message will be centered at the bottom of each label',
+                                ),
+                                maxLines: 2,
+                                maxLength: 100,
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ),
+
                     const SizedBox(height: 24),
                   ],
                 ),

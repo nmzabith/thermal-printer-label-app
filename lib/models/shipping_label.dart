@@ -8,6 +8,7 @@ class ShippingLabel {
   bool includeLogo; // Whether to include logo on this specific label
   bool codEnabled; // Whether Cash on Delivery is enabled
   double codAmount; // COD amount in LKR (Sri Lankan Rupee)
+  bool includeThanksMessage; // Whether to include thanks message on this label
 
   ShippingLabel({
     required this.id,
@@ -17,6 +18,7 @@ class ShippingLabel {
     this.includeLogo = false, // Default to false (unticked)
     this.codEnabled = false, // Default to false
     this.codAmount = 0.0, // Default to 0
+    this.includeThanksMessage = true, // Default to true (enabled)
   }) : createdAt = createdAt ?? DateTime.now();
 
   // Create empty label
@@ -27,7 +29,8 @@ class ShippingLabel {
         createdAt = DateTime.now(),
         includeLogo = false,
         codEnabled = false,
-        codAmount = 0.0;
+        codAmount = 0.0,
+        includeThanksMessage = true;
 
   // Generate unique ID
   static String _generateId() {
@@ -44,6 +47,7 @@ class ShippingLabel {
       'includeLogo': includeLogo,
       'codEnabled': codEnabled,
       'codAmount': codAmount,
+      'includeThanksMessage': includeThanksMessage,
     };
   }
 
@@ -54,9 +58,10 @@ class ShippingLabel {
       fromInfo: ContactInfo.fromMap(map['fromInfo'] ?? {}),
       toInfo: ContactInfo.fromMap(map['toInfo'] ?? {}),
       createdAt: DateTime.parse(map['createdAt']),
-      includeLogo: map['includeLogo'] ?? false,
-      codEnabled: map['codEnabled'] ?? false,
-      codAmount: (map['codAmount'] ?? 0.0).toDouble(),
+      includeLogo: map['includeLogo'] as bool? ?? false,
+      codEnabled: map['codEnabled'] as bool? ?? false,
+      codAmount: (map['codAmount'] as num?)?.toDouble() ?? 0.0,
+      includeThanksMessage: map['includeThanksMessage'] as bool? ?? true,
     );
   }
 

@@ -1,18 +1,31 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../models/contact_info.dart';
 import '../models/shipping_label.dart';
+import 'gemini_model_rotation_service.dart';
 
 class GeminiAiService {
-  static const String _baseUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
-  
-  // API key should be set via environment variable or secure storage
-  // For development, set GEMINI_API_KEY environment variable
-  // For production, use Flutter secure storage or backend proxy
-  static const String _apiKey = String.fromEnvironment(
-    'GEMINI_API_KEY',
-    defaultValue: '', // Empty default - must be provided at build time or runtime
-  );
+  // Model rotation service for handling rate limits
+  final GeminiModelRotationService _modelRotation =
+      GeminiModelRotationService();
+
+  // Get API key from .env file
+  String get _apiKey {
+    try {
+      final key = dotenv.env['GEMINI_API_KEY'] ?? '';
+      if (key.isEmpty) {
+        print(
+            'ERROR: GEMINI_API_KEY is empty. Make sure .env file exists and contains the key.');
+      }
+      return key;
+    } catch (e) {
+      print('ERROR accessing dotenv: $e');
+      print(
+          'Make sure to rebuild the app (not just hot restart) after adding .env file');
+      return '';
+    }
+  }
 
   /// Extract shipping label information from pasted text using Gemini AI
   Future<ShippingLabel?> extractShippingInfo(String text) async {
@@ -29,10 +42,11 @@ class GeminiAiService {
   }
 
   /// Make request to Gemini AI with retry logic for incomplete responses
-  Future<Map<String, dynamic>?> _makeGeminiRequestWithRetry(String text, {int maxRetries = 2}) async {
+  Future<Map<String, dynamic>?> _makeGeminiRequestWithRetry(String text,
+      {int maxRetries = 2}) async {
     for (int attempt = 0; attempt <= maxRetries; attempt++) {
       final response = await _makeGeminiRequest(text, attempt: attempt + 1);
-      
+
       if (response != null) {
         // Validate response completeness
         if (_isResponseComplete(response)) {
@@ -46,7 +60,7 @@ class GeminiAiService {
         }
       }
     }
-    
+
     // If all retries failed, return the last response (might be incomplete)
     return await _makeGeminiRequest(text, attempt: maxRetries + 1);
   }
@@ -55,31 +69,41 @@ class GeminiAiService {
   bool _isResponseComplete(Map<String, dynamic> response) {
     if (response['to_info'] == null) return false;
     if (response['from_info'] == null) return false;
-    
+
     final toInfo = response['to_info'];
     final fromInfo = response['from_info'];
-    
+
     // Check if TO info has at least name and address
-    final hasToInfo = toInfo['name'] != null && 
-                      toInfo['name'].toString().trim().isNotEmpty &&
-                      toInfo['address'] != null && 
-                      toInfo['address'].toString().trim().isNotEmpty;
-    
+    final hasToInfo = toInfo['name'] != null &&
+        toInfo['name'].toString().trim().isNotEmpty &&
+        toInfo['address'] != null &&
+        toInfo['address'].toString().trim().isNotEmpty;
+
     // Check if FROM info has at least name (address can be empty)
-    final hasFromInfo = fromInfo['name'] != null && 
-                        fromInfo['name'].toString().trim().isNotEmpty;
-    
+    final hasFromInfo = fromInfo['name'] != null &&
+        fromInfo['name'].toString().trim().isNotEmpty;
+
     return hasToInfo && hasFromInfo;
   }
 
   /// Make request to Gemini AI with structured output schema
-  Future<Map<String, dynamic>?> _makeGeminiRequest(String text, {int attempt = 1}) async {
+  /// Automatically handles rate limits by switching models
+  Future<Map<String, dynamic>?> _makeGeminiRequest(String text,
+      {int attempt = 1}) async {
+    // Get current best available model
+    final modelName = await _modelRotation.getCurrentModel();
+    final baseUrl =
+        'https://generativelanguage.googleapis.com/v1beta/models/$modelName:generateContent';
+
+    print('Using Gemini model: $modelName (attempt $attempt)');
+
     final requestBody = {
       "contents": [
         {
           "parts": [
             {
-              "text": """Extract shipping label information from the following text and return BOTH TO and FROM information.
+              "text":
+                  """Extract shipping label information from the following text and return BOTH TO and FROM information.
 
 IMPORTANT: You must extract BOTH sender (FROM) and recipient (TO) information. If the text contains multiple addresses or contacts, identify which is the sender and which is the recipient.
 
@@ -113,10 +137,22 @@ Return the information in the exact JSON format specified, ensuring both to_info
             "to_info": {
               "type": "object",
               "properties": {
-                "name": {"type": "string", "description": "Recipient's full name"},
-                "address": {"type": "string", "description": "Complete shipping address"},
-                "phone_number_1": {"type": "string", "description": "Primary phone number"},
-                "phone_number_2": {"type": "string", "description": "Secondary phone number"}
+                "name": {
+                  "type": "string",
+                  "description": "Recipient's full name"
+                },
+                "address": {
+                  "type": "string",
+                  "description": "Complete shipping address"
+                },
+                "phone_number_1": {
+                  "type": "string",
+                  "description": "Primary phone number"
+                },
+                "phone_number_2": {
+                  "type": "string",
+                  "description": "Secondary phone number"
+                }
               },
               "required": ["name", "address"]
             },
@@ -124,9 +160,18 @@ Return the information in the exact JSON format specified, ensuring both to_info
               "type": "object",
               "properties": {
                 "name": {"type": "string", "description": "Sender's full name"},
-                "address": {"type": "string", "description": "Complete return address"},
-                "phone_number_1": {"type": "string", "description": "Primary phone number"},
-                "phone_number_2": {"type": "string", "description": "Secondary phone number"}
+                "address": {
+                  "type": "string",
+                  "description": "Complete return address"
+                },
+                "phone_number_1": {
+                  "type": "string",
+                  "description": "Primary phone number"
+                },
+                "phone_number_2": {
+                  "type": "string",
+                  "description": "Secondary phone number"
+                }
               },
               "required": ["name", "address"]
             }
@@ -139,7 +184,7 @@ Return the information in the exact JSON format specified, ensuring both to_info
 
     try {
       final response = await http.post(
-        Uri.parse('$_baseUrl?key=$_apiKey'),
+        Uri.parse('$baseUrl?key=$_apiKey'),
         headers: {
           'Content-Type': 'application/json',
         },
@@ -147,18 +192,37 @@ Return the information in the exact JSON format specified, ensuring both to_info
       );
 
       if (response.statusCode == 200) {
+        // Success - increment request count
+        await _modelRotation.incrementRequestCount(modelName);
+
         final jsonResponse = jsonDecode(response.body);
-        if (jsonResponse['candidates'] != null && 
+        if (jsonResponse['candidates'] != null &&
             jsonResponse['candidates'].isNotEmpty &&
             jsonResponse['candidates'][0]['content'] != null &&
             jsonResponse['candidates'][0]['content']['parts'] != null &&
             jsonResponse['candidates'][0]['content']['parts'].isNotEmpty) {
-          
-          final textResponse = jsonResponse['candidates'][0]['content']['parts'][0]['text'];
+          final textResponse =
+              jsonResponse['candidates'][0]['content']['parts'][0]['text'];
           print('Gemini response text: $textResponse'); // Debug log
           return jsonDecode(textResponse);
         } else {
           print('Invalid response structure: $jsonResponse');
+        }
+      } else if (response.statusCode == 429) {
+        // Rate limit hit - mark model and retry with next available model
+        print('Rate limit hit for model: $modelName');
+        await _modelRotation.markModelRateLimited(modelName);
+
+        // Get next available model and retry
+        final nextModel = await _modelRotation.getCurrentModel();
+        if (nextModel != modelName) {
+          print('Switching to model: $nextModel');
+          // Recursive retry with new model
+          return await _makeGeminiRequest(text, attempt: attempt);
+        } else {
+          print('All models are rate limited. Please try again later.');
+          final resetTime = await _modelRotation.getNextResetTimeFormatted();
+          print('Rate limits reset at: $resetTime');
         }
       } else {
         print('Gemini API error: ${response.statusCode} - ${response.body}');
@@ -166,7 +230,7 @@ Return the information in the exact JSON format specified, ensuring both to_info
     } catch (e) {
       print('Request error: $e');
     }
-    
+
     return null;
   }
 
@@ -199,7 +263,8 @@ Return the information in the exact JSON format specified, ensuring both to_info
         phoneNumber1: fromInfo['phone_number_1'] ?? '',
         phoneNumber2: fromInfo['phone_number_2'] ?? '',
       );
-      print('Parsed FROM info: ${label.fromInfo.name} - ${label.fromInfo.address}');
+      print(
+          'Parsed FROM info: ${label.fromInfo.name} - ${label.fromInfo.address}');
     } else {
       print('Warning: No from_info found in response');
       // Create a placeholder FROM info to indicate missing data

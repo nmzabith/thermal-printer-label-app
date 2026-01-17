@@ -388,6 +388,75 @@ class _LabelEditorScreenState extends State<LabelEditorScreen> {
                   ),
                 ),
 
+                const SizedBox(height: 16),
+
+                // Thanks Message Card
+                Card(
+                  margin: const EdgeInsets.all(8.0),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(Icons.favorite, color: Colors.pink),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Thanks Message',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .titleMedium
+                                  ?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        SwitchListTile(
+                          title: const Text('Include Thanks Message'),
+                          subtitle:
+                              const Text('Show message at bottom of label'),
+                          value: _label.includeThanksMessage,
+                          onChanged: (value) {
+                            setState(() {
+                              _label.includeThanksMessage = value;
+                              _hasChanges = true;
+                            });
+                          },
+                          secondary: const Icon(Icons.message_outlined),
+                          contentPadding: EdgeInsets.zero,
+                        ),
+                        if (_label.includeThanksMessage) ...[
+                          const SizedBox(height: 8),
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.pink.shade50,
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: Colors.pink.shade200),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(Icons.info_outline,
+                                    color: Colors.pink.shade700, size: 20),
+                                const SizedBox(width: 8),
+                                const Expanded(
+                                  child: Text(
+                                    'Message will be centered at the bottom of the label. Edit the default message in Logo Manager settings.',
+                                    style: TextStyle(fontSize: 13),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
+
                 const SizedBox(height: 24),
 
                 // Action Buttons

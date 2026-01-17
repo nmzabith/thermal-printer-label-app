@@ -962,6 +962,12 @@ class ThermalPrinterService {
         await _addLogoToCommands(commands, label, labelConfig);
       }
 
+      // Add thanks message if enabled for this label
+      if (label.includeThanksMessage) {
+        await _addThanksMessageToCommands(
+            commands, labelConfig, labelWidthDots, labelHeightDots);
+      }
+
       // Print command
       commands.add('PRINT 1,1');
 
@@ -1139,6 +1145,54 @@ class ThermalPrinterService {
     } catch (e) {
       print('Error converting logo to bitmap: $e');
       return '';
+    }
+  }
+
+  /// Add thanks message to TSC commands for label printing
+  /// Centers the message at the bottom of the label
+  Future<void> _addThanksMessageToCommands(List<String> commands,
+      LabelConfig labelConfig, int labelWidthDots, int labelHeightDots) async {
+    try {
+      final logoService = LogoService();
+      final logoConfig = await logoService.getDefaultLogoConfig();
+
+      // If thanks message is not enabled in logo config, skip
+      if (logoConfig == null || !logoConfig.thanksMessageEnabled) {
+        print('Thanks message disabled in logo config - skipping');
+        return;
+      }
+
+      final message = logoConfig.thanksMessage;
+      if (message.isEmpty) {
+        print('Thanks message is empty - skipping');
+        return;
+      }
+
+      // Position message at bottom of label (centered)
+      // Leave 30 dots from bottom for visibility
+      final yPosition = labelHeightDots - 30; // 30 dots from bottom
+
+      // Use TSC font 3 (small font) for thanks message
+      // Format: "3",rotation,xmul,ymul
+      final tscFont = '"3",0,1,1'; // Font 3, no rotation, normal size
+
+      // Calculate approximate text width for centering
+      // Font 3 is approximately 8 dots wide per character
+      final charWidth = 8; // Approximate character width in dots for font 3
+      final textWidthDots = message.length * charWidth;
+      final xPosition = ((labelWidthDots - textWidthDots) / 2)
+          .toInt()
+          .clamp(10, labelWidthDots - 50);
+
+      // Add centered thanks message
+      commands.add(
+          'TEXT $xPosition,$yPosition,$tscFont,"${_sanitizeText(message)}"');
+
+      print(
+          'Added thanks message at bottom center: "$message" at position ($xPosition, $yPosition)');
+    } catch (e) {
+      print('Error adding thanks message: $e');
+      // Don't fail the print job if thanks message fails
     }
   }
 
