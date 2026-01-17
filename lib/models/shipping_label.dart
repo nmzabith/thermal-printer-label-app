@@ -6,6 +6,8 @@ class ShippingLabel {
   ContactInfo toInfo;
   DateTime createdAt;
   bool includeLogo; // Whether to include logo on this specific label
+  bool codEnabled; // Whether Cash on Delivery is enabled
+  double codAmount; // COD amount in LKR (Sri Lankan Rupee)
 
   ShippingLabel({
     required this.id,
@@ -13,6 +15,8 @@ class ShippingLabel {
     required this.toInfo,
     DateTime? createdAt,
     this.includeLogo = false, // Default to false (unticked)
+    this.codEnabled = false, // Default to false
+    this.codAmount = 0.0, // Default to 0
   }) : createdAt = createdAt ?? DateTime.now();
 
   // Create empty label
@@ -21,7 +25,9 @@ class ShippingLabel {
         fromInfo = ContactInfo.empty(),
         toInfo = ContactInfo.empty(),
         createdAt = DateTime.now(),
-        includeLogo = false;
+        includeLogo = false,
+        codEnabled = false,
+        codAmount = 0.0;
 
   // Generate unique ID
   static String _generateId() {
@@ -36,6 +42,8 @@ class ShippingLabel {
       'toInfo': toInfo.toMap(),
       'createdAt': createdAt.toIso8601String(),
       'includeLogo': includeLogo,
+      'codEnabled': codEnabled,
+      'codAmount': codAmount,
     };
   }
 
@@ -47,6 +55,8 @@ class ShippingLabel {
       toInfo: ContactInfo.fromMap(map['toInfo'] ?? {}),
       createdAt: DateTime.parse(map['createdAt']),
       includeLogo: map['includeLogo'] ?? false,
+      codEnabled: map['codEnabled'] ?? false,
+      codAmount: (map['codAmount'] ?? 0.0).toDouble(),
     );
   }
 

@@ -14,7 +14,8 @@ import 'logo_service.dart';
 /// Thermal Printer Service using bluetooth_print_plus with TSC/TSPL commands
 /// Designed specifically for XPrinter XP-365B thermal label printer
 class ThermalPrinterService {
-  static final ThermalPrinterService _instance = ThermalPrinterService._internal();
+  static final ThermalPrinterService _instance =
+      ThermalPrinterService._internal();
   factory ThermalPrinterService() => _instance;
   ThermalPrinterService._internal();
 
@@ -23,14 +24,14 @@ class ThermalPrinterService {
   late StreamSubscription<List<BluetoothDevice>> _scanResultsSubscription;
   late StreamSubscription<bool> _isScanningSubscription;
   late StreamSubscription<BlueState> _blueStateSubscription;
-  
+
   bool _isConnected = false;
   bool _isConnecting = false;
   DateTime? _lastSuccessfulPrint;
-  
+
   // TSC Command instances for different command types
   final tscCommand = TscCommand();
-  final cpclCommand = CpclCommand(); 
+  final cpclCommand = CpclCommand();
   final escCommand = EscCommand();
 
   /// Initialize service and set up listeners
@@ -84,13 +85,17 @@ class ThermalPrinterService {
       'deviceName': _selectedDevice?.name ?? 'None',
       'deviceAddress': _selectedDevice?.address ?? 'None',
       'lastSuccessfulPrint': _lastSuccessfulPrint?.toIso8601String(),
-      'connectionHealth': _isConnected && BluetoothPrintPlus.isConnected ? 'Good' : 
-                         _isConnecting ? 'Connecting' : 'Disconnected',
+      'connectionHealth': _isConnected && BluetoothPrintPlus.isConnected
+          ? 'Good'
+          : _isConnecting
+              ? 'Connecting'
+              : 'Disconnected',
     };
   }
 
   /// Quick connection health check without reconnection attempts
-  bool get isConnectionHealthy => _isConnected && BluetoothPrintPlus.isConnected;
+  bool get isConnectionHealthy =>
+      _isConnected && BluetoothPrintPlus.isConnected;
 
   /// Check and request Bluetooth permissions
   Future<bool> checkBluetoothPermissions() async {
@@ -102,9 +107,9 @@ class ThermalPrinterService {
         Permission.location,
       ].request();
 
-      bool allGranted = permissions.values.every((status) => 
-        status == PermissionStatus.granted);
-      
+      bool allGranted = permissions.values
+          .every((status) => status == PermissionStatus.granted);
+
       print('Bluetooth permissions granted: $allGranted');
       return allGranted;
     } catch (e) {
@@ -117,17 +122,18 @@ class ThermalPrinterService {
   Future<List<BluetoothDevice>> discoverPrinters() async {
     try {
       print('Starting printer discovery...');
-      
+
       bool permissionsGranted = await checkBluetoothPermissions();
       if (!permissionsGranted) {
         throw Exception('Bluetooth permissions not granted');
       }
 
       await BluetoothPrintPlus.startScan(timeout: const Duration(seconds: 10));
-      
+
       Completer<List<BluetoothDevice>> completer = Completer();
-      
-      _scanResultsSubscription = BluetoothPrintPlus.scanResults.listen((devices) {
+
+      _scanResultsSubscription =
+          BluetoothPrintPlus.scanResults.listen((devices) {
         if (!completer.isCompleted) {
           completer.complete(devices);
         }
@@ -140,7 +146,6 @@ class ThermalPrinterService {
 
       print('Found ${devices.length} Bluetooth devices');
       return devices;
-
     } catch (e) {
       print('Error discovering printers: $e');
       return [];
@@ -170,7 +175,8 @@ class ThermalPrinterService {
 
       // First disconnect any existing connection and wait longer
       await BluetoothPrintPlus.disconnect();
-      await Future.delayed(const Duration(milliseconds: 1000)); // Increased delay
+      await Future.delayed(
+          const Duration(milliseconds: 1000)); // Increased delay
 
       // Clear any previous connection state
       _selectedDevice = null;
@@ -181,21 +187,22 @@ class ThermalPrinterService {
       await BluetoothPrintPlus.connect(device).timeout(
         const Duration(seconds: 10),
         onTimeout: () {
-          throw TimeoutException('Connection timeout', const Duration(seconds: 10));
+          throw TimeoutException(
+              'Connection timeout', const Duration(seconds: 10));
         },
       );
-      
+
       // Wait for connection to stabilize with more thorough checking
       bool connectionEstablished = false;
       print('Waiting for connection to stabilize...');
-      
+
       for (int attempt = 0; attempt < 15; attempt++) {
         await Future.delayed(const Duration(milliseconds: 500));
-        
+
         // Check connection state
         bool isConnectedNow = BluetoothPrintPlus.isConnected;
         print('Connection check attempt ${attempt + 1}/15: $isConnectedNow');
-        
+
         if (isConnectedNow) {
           // Double-check with a small delay
           await Future.delayed(const Duration(milliseconds: 200));
@@ -214,7 +221,7 @@ class ThermalPrinterService {
         _isConnected = true;
         _lastSuccessfulPrint = DateTime.now();
         print('Successfully connected to printer - performing connection test');
-        
+
         // Send a simple initialization command and test response
         try {
           // Send a safe command that shouldn't print anything
@@ -222,14 +229,14 @@ class ThermalPrinterService {
           Uint8List testBytes = Uint8List.fromList(testCommand.codeUnits);
           await BluetoothPrintPlus.write(testBytes);
           await Future.delayed(const Duration(milliseconds: 300));
-          
+
           // If we got here without exception, connection is stable
           print('Printer connection test successful');
         } catch (e) {
           print('Warning: Printer test failed but connection seems stable: $e');
           // Don't fail the connection for this, printer might not support STATUS
         }
-        
+
         // Final stability check
         await Future.delayed(const Duration(milliseconds: 500));
         if (BluetoothPrintPlus.isConnected) {
@@ -241,7 +248,6 @@ class ThermalPrinterService {
           _isConnected = false;
           return false;
         }
-        
       } else {
         print('Connection failed - printer not responding after 15 attempts');
         _selectedDevice = null;
@@ -249,7 +255,6 @@ class ThermalPrinterService {
         await BluetoothPrintPlus.disconnect();
         return false;
       }
-      
     } catch (e) {
       print('Error connecting to printer: $e');
       _isConnected = false;
@@ -269,11 +274,12 @@ class ThermalPrinterService {
   Future<bool> _ensureConnection() async {
     if (!BluetoothPrintPlus.isConnected || !_isConnected) {
       print('Connection lost, checking if we can reconnect...');
-      
+
       if (_selectedDevice != null) {
-        print('Attempting to reconnect to previous device: ${_selectedDevice!.name}');
+        print(
+            'Attempting to reconnect to previous device: ${_selectedDevice!.name}');
         _isConnected = false;
-        
+
         // Try to reconnect
         bool reconnected = await connectToPrinter(_selectedDevice!);
         if (reconnected) {
@@ -289,14 +295,14 @@ class ThermalPrinterService {
         return false;
       }
     }
-    
+
     // Connection seems good, but let's do a health check
     try {
       // Send a minimal command that shouldn't affect printing
       Uint8List healthCheck = Uint8List.fromList([27]); // ESC character
       await BluetoothPrintPlus.write(healthCheck);
       await Future.delayed(const Duration(milliseconds: 100));
-      
+
       // If we got here, connection is healthy
       return BluetoothPrintPlus.isConnected;
     } catch (e) {
@@ -310,29 +316,25 @@ class ThermalPrinterService {
   /// Used for the test buttons - sends actual commands to printer
   Future<bool> _verifyConnectionWithTest() async {
     try {
-      if (_selectedDevice == null || !BluetoothPrintPlus.isConnected) return false;
+      if (_selectedDevice == null || !BluetoothPrintPlus.isConnected)
+        return false;
 
       await tscCommand.cleanCommand();
       await tscCommand.size(width: 80, height: 60);
       await tscCommand.cls();
-      
-      await tscCommand.text(
-        content: "Connection Test",
-        x: 10, 
-        y: 10
-      );
-      
+
+      await tscCommand.text(content: "Connection Test", x: 10, y: 10);
+
       await tscCommand.print(1);
-      
+
       final cmd = await tscCommand.getCommand();
       if (cmd == null) return false;
 
       BluetoothPrintPlus.write(cmd);
       await Future.delayed(const Duration(seconds: 2));
-      
+
       print('TSC connection test sent successfully');
       return true;
-      
     } catch (e) {
       print('Connection verification test failed: $e');
       return false;
@@ -344,19 +346,19 @@ class ThermalPrinterService {
     try {
       print('Disconnecting from printer...');
       _isConnecting = false; // Clear any connecting state
-      
+
       // Force disconnect regardless of current state
       await BluetoothPrintPlus.disconnect();
-      await Future.delayed(const Duration(milliseconds: 500)); // Give time for cleanup
-      
+      await Future.delayed(
+          const Duration(milliseconds: 500)); // Give time for cleanup
+
       // Clear all connection state
       _selectedDevice = null;
       _isConnected = false;
       _lastSuccessfulPrint = null;
-      
+
       print('Successfully disconnected from printer - all state cleared');
       return true;
-      
     } catch (e) {
       print('Error disconnecting printer: $e');
       // Clear state anyway
@@ -378,23 +380,18 @@ class ThermalPrinterService {
       await tscCommand.cleanCommand();
       await tscCommand.size(width: 80, height: 50);
       await tscCommand.cls();
-      
-      await tscCommand.text(
-        content: "Quick Test OK",
-        x: 10,
-        y: 10
-      );
-      
+
+      await tscCommand.text(content: "Quick Test OK", x: 10, y: 10);
+
       await tscCommand.print(1);
-      
+
       final cmd = await tscCommand.getCommand();
       if (cmd == null) return false;
 
       BluetoothPrintPlus.write(cmd);
-      
+
       _lastSuccessfulPrint = DateTime.now();
       return true;
-      
     } catch (e) {
       print('Quick connection test failed: $e');
       _isConnected = false;
@@ -417,9 +414,10 @@ class ThermalPrinterService {
 
       // Build TSC commands manually as strings for better compatibility
       List<String> commands = [];
-      
+
       // Setup commands
-      commands.add('SIZE ${labelConfig.widthMm.toInt()} mm, ${labelConfig.heightMm.toInt()} mm');
+      commands.add(
+          'SIZE ${labelConfig.widthMm.toInt()} mm, ${labelConfig.heightMm.toInt()} mm');
       commands.add('GAP ${labelConfig.spacingMm.toInt()} mm, 0 mm');
       commands.add('DIRECTION 0,0'); // 0,0 = normal orientation (not rotated)
       commands.add('REFERENCE 0,0');
@@ -429,54 +427,57 @@ class ThermalPrinterService {
       commands.add('SET PARTIAL_CUTTER OFF');
       commands.add('SET TEAR ON');
       commands.add('CLS');
-      
+
       // Convert mm to dots (203 DPI = ~8 dots per mm)
       int yPos = 20; // Start position in dots
-      int lineHeight = labelConfig.heightMm < 60 ? 30 : 40; // Line spacing in dots
-      
+      int lineHeight =
+          labelConfig.heightMm < 60 ? 30 : 40; // Line spacing in dots
+
       // Font sizes: "1"=8x12, "2"=12x20, "3"=16x24, "4"=24x32, "5"=32x48
-      String titleFont = labelConfig.heightMm >= 80 ? "4" : "3";  // Large title
-      String headerFont = "3";  // Medium headers
-      String textFont = "2";    // Normal text
-      String smallFont = "1";   // Small details
-      
+      String titleFont = labelConfig.heightMm >= 80 ? "4" : "3"; // Large title
+      String headerFont = "3"; // Medium headers
+      String textFont = "2"; // Normal text
+      String smallFont = "1"; // Small details
+
       commands.add('TEXT 20,${yPos},"${titleFont}",0,1,1,"TSC TEST PRINT"');
       yPos += lineHeight;
-      
+
       commands.add('TEXT 20,${yPos},"${headerFont}",0,1,1,"XPrinter XP-365B"');
       yPos += lineHeight;
-      
-      commands.add('TEXT 20,${yPos},"${textFont}",0,1,1,"Config: ${labelConfig.name}"');
+
+      commands.add(
+          'TEXT 20,${yPos},"${textFont}",0,1,1,"Config: ${labelConfig.name}"');
       yPos += lineHeight;
-      
+
       String timestamp = DateTime.now().toString().substring(0, 16);
       commands.add('TEXT 20,${yPos},"${textFont}",0,1,1,"${timestamp}"');
       yPos += lineHeight;
-      
-      commands.add('TEXT 20,${yPos},"${smallFont}",0,1,1,"Size: ${labelConfig.widthMm.toInt()}mm x ${labelConfig.heightMm.toInt()}mm"');
+
+      commands.add(
+          'TEXT 20,${yPos},"${smallFont}",0,1,1,"Size: ${labelConfig.widthMm.toInt()}mm x ${labelConfig.heightMm.toInt()}mm"');
       yPos += lineHeight;
-      
-      commands.add('TEXT 20,${yPos},"${smallFont}",0,1,1,"Gap: ${labelConfig.spacingMm.toInt()}mm"');
-      
+
+      commands.add(
+          'TEXT 20,${yPos},"${smallFont}",0,1,1,"Gap: ${labelConfig.spacingMm.toInt()}mm"');
+
       // Print command
       commands.add('PRINT 1,1');
-      
+
       // Combine all commands
       String fullCommand = commands.join('\r\n') + '\r\n';
-      
+
       // Debug: Print the TSC commands being sent
       print('TSC Commands for Test Print:');
       print('--- START ---');
       print(fullCommand.replaceAll('\r\n', '\n'));
       print('--- END ---');
-      
+
       // Send to printer
       await BluetoothPrintPlus.write(Uint8List.fromList(fullCommand.codeUnits));
-      
+
       _lastSuccessfulPrint = DateTime.now();
       print('Full test print completed successfully');
       return true;
-
     } catch (e) {
       print('Full test print failed: $e');
       return false;
@@ -496,12 +497,13 @@ class ThermalPrinterService {
         throw Exception('No labels to print');
       }
 
-      print('Connection verified - printing ${labels.length} shipping labels using TSC commands...');
-      
+      print(
+          'Connection verified - printing ${labels.length} shipping labels using TSC commands...');
+
       for (int i = 0; i < labels.length; i++) {
         ShippingLabel label = labels[i];
         print('Printing label ${i + 1}/${labels.length}: ${label.toInfo.name}');
-        
+
         // Verify connection before each label
         if (i > 0) {
           bool stillConnected = await _ensureConnection();
@@ -510,21 +512,20 @@ class ThermalPrinterService {
             throw Exception('Connection lost during printing');
           }
         }
-        
+
         bool success = await _printSingleShippingLabel(label);
         if (!success) {
           print('Failed to print label ${i + 1}');
           return false;
         }
-        
+
         if (i < labels.length - 1) {
           await Future.delayed(const Duration(milliseconds: 1000));
         }
       }
-      
+
       print('All shipping labels printed successfully');
       return true;
-      
     } catch (e) {
       print('Error printing shipping labels: $e');
       return false;
@@ -534,11 +535,11 @@ class ThermalPrinterService {
   /// Sanitize text for TSC commands (remove special characters that could break commands)
   String _sanitizeText(String text) {
     return text
-        .replaceAll('"', "'")  // Replace quotes
-        .replaceAll('\r\n', ' ')  // Replace newlines
+        .replaceAll('"', "'") // Replace quotes
+        .replaceAll('\r\n', ' ') // Replace newlines
         .replaceAll('\n', ' ')
         .replaceAll('\r', ' ')
-        .replaceAll(',', ' ')  // Replace commas that might break TSC syntax
+        .replaceAll(',', ' ') // Replace commas that might break TSC syntax
         .trim();
   }
 
@@ -546,11 +547,11 @@ class ThermalPrinterService {
   Map<String, Map<String, int>> _getFontDimensions() {
     // TSC font sizes in dots (width x height) at 203 DPI
     return {
-      "1": {"width": 8, "height": 12, "lineSpacing": 15},   // Small
-      "2": {"width": 12, "height": 20, "lineSpacing": 24},  // Normal  
-      "3": {"width": 16, "height": 24, "lineSpacing": 28},  // Medium
-      "4": {"width": 24, "height": 32, "lineSpacing": 36},  // Large
-      "5": {"width": 32, "height": 48, "lineSpacing": 52},  // Extra Large
+      "1": {"width": 8, "height": 12, "lineSpacing": 15}, // Small
+      "2": {"width": 12, "height": 20, "lineSpacing": 24}, // Normal
+      "3": {"width": 16, "height": 24, "lineSpacing": 28}, // Medium
+      "4": {"width": 24, "height": 32, "lineSpacing": 36}, // Large
+      "5": {"width": 32, "height": 48, "lineSpacing": 52}, // Extra Large
     };
   }
 
@@ -558,13 +559,14 @@ class ThermalPrinterService {
   bool _textFitsWidth(String text, String fontId, int maxWidthDots) {
     final fontDims = _getFontDimensions()[fontId];
     if (fontDims == null) return false;
-    
+
     int textWidthDots = text.length * fontDims["width"]!;
     return textWidthDots <= maxWidthDots;
   }
 
   /// Get the best font size that fits the text within width constraints
-  String _getBestFitFont(String text, List<String> fontOptions, int maxWidthDots) {
+  String _getBestFitFont(
+      String text, List<String> fontOptions, int maxWidthDots) {
     // Try fonts from largest to smallest
     for (String font in fontOptions) {
       if (_textFitsWidth(text, font, maxWidthDots)) {
@@ -576,84 +578,107 @@ class ThermalPrinterService {
   }
 
   /// Calculate total content height to ensure it fits in label
-  int _calculateContentHeight(ShippingLabel label, LabelConfig labelConfig, FontSettings fontSettings) {
+  int _calculateContentHeight(
+      ShippingLabel label, LabelConfig labelConfig, FontSettings fontSettings) {
     int totalHeight = 20; // Starting position
-    
+
     // Get dimensions for different font types
     final titleDims = fontSettings.getTextDimensions('title');
-    final subtitleDims = fontSettings.getTextDimensions('subtitle');  
+    final subtitleDims = fontSettings.getTextDimensions('subtitle');
     final contentDims = fontSettings.getTextDimensions('content');
     final smallDims = fontSettings.getTextDimensions('small');
-    
-    int baseLineSpacing = (contentDims['height']! * fontSettings.lineSpacingFactor).round();
+
+    int baseLineSpacing =
+        (contentDims['height']! * fontSettings.lineSpacingFactor).round();
     int sectionSpacing = baseLineSpacing;
-    
+
     // Header (if large label)
     if (labelConfig.heightMm >= 80) {
-      totalHeight += (titleDims['height']! * fontSettings.lineSpacingFactor).round() + sectionSpacing; // Title
+      totalHeight +=
+          (titleDims['height']! * fontSettings.lineSpacingFactor).round() +
+              sectionSpacing; // Title
       totalHeight += contentDims['height']!; // Separator
     }
-    
+
     // TO section
-    totalHeight += (subtitleDims['height']! * fontSettings.lineSpacingFactor).round(); // "TO:" header
-    totalHeight += (contentDims['height']! * fontSettings.lineSpacingFactor).round() + 5; // Name (bold) + extra spacing
-    
+    totalHeight += (subtitleDims['height']! * fontSettings.lineSpacingFactor)
+        .round(); // "TO:" header
+    totalHeight +=
+        (contentDims['height']! * fontSettings.lineSpacingFactor).round() +
+            5; // Name (bold) + extra spacing
+
     // TO Address lines
     if (label.toInfo.address.isNotEmpty) {
-      List<String> toAddressLines = _splitAddress(label.toInfo.address, maxWidth: fontSettings.maxLinesAddress * 10);
+      List<String> toAddressLines = _splitAddress(label.toInfo.address,
+          maxWidth: fontSettings.maxLinesAddress * 10);
       totalHeight += (toAddressLines.length * (baseLineSpacing - 5)) + 5;
     }
-    
+
     // TO Phone
-    if (label.toInfo.phoneNumber1.isNotEmpty || label.toInfo.phoneNumber2.isNotEmpty) {
-      totalHeight += (smallDims['height']! * fontSettings.lineSpacingFactor).round();
+    if (label.toInfo.phoneNumber1.isNotEmpty ||
+        label.toInfo.phoneNumber2.isNotEmpty) {
+      totalHeight +=
+          (smallDims['height']! * fontSettings.lineSpacingFactor).round();
     }
     totalHeight += sectionSpacing;
-    
-    // FROM section  
-    totalHeight += (subtitleDims['height']! * fontSettings.lineSpacingFactor).round(); // "FROM:" header
-    totalHeight += (contentDims['height']! * fontSettings.lineSpacingFactor).round() + 5; // Name (bold) + extra spacing
-    
+
+    // FROM section
+    totalHeight += (subtitleDims['height']! * fontSettings.lineSpacingFactor)
+        .round(); // "FROM:" header
+    totalHeight +=
+        (contentDims['height']! * fontSettings.lineSpacingFactor).round() +
+            5; // Name (bold) + extra spacing
+
     // FROM Address lines (optional)
     if (label.fromInfo.address.isNotEmpty) {
-      List<String> fromAddressLines = _splitAddress(label.fromInfo.address, maxWidth: fontSettings.maxLinesAddress * 10);
+      List<String> fromAddressLines = _splitAddress(label.fromInfo.address,
+          maxWidth: fontSettings.maxLinesAddress * 10);
       totalHeight += (fromAddressLines.length * (baseLineSpacing - 5)) + 5;
     }
-    
+
     // FROM Phone
-    if (label.fromInfo.phoneNumber1.isNotEmpty || label.fromInfo.phoneNumber2.isNotEmpty) {
-      totalHeight += (smallDims['height']! * fontSettings.lineSpacingFactor).round();
+    if (label.fromInfo.phoneNumber1.isNotEmpty ||
+        label.fromInfo.phoneNumber2.isNotEmpty) {
+      totalHeight +=
+          (smallDims['height']! * fontSettings.lineSpacingFactor).round();
     }
     totalHeight += sectionSpacing;
-    
+
     // Label details (if space)
     if (labelConfig.heightMm >= 60) {
-      totalHeight += (smallDims['height']! * fontSettings.lineSpacingFactor).round() * 2; // ID + Date
+      totalHeight +=
+          (smallDims['height']! * fontSettings.lineSpacingFactor).round() *
+              2; // ID + Date
     }
-    
+
     return totalHeight;
   }
 
   /// Get auto-sized font settings when content doesn't fit
-  FontSettings _getAutoSizedFontSettings(FontSettings originalSettings, ShippingLabel label, LabelConfig labelConfig) {
+  FontSettings _getAutoSizedFontSettings(FontSettings originalSettings,
+      ShippingLabel label, LabelConfig labelConfig) {
     // Start with smaller versions of the original settings
     FontSettings candidateSettings = originalSettings.copyWith(
       labelTitleFontSize: (originalSettings.labelTitleFontSize - 1).clamp(1, 8),
       headerFontSize: (originalSettings.headerFontSize - 1).clamp(1, 8),
       nameFontSize: (originalSettings.nameFontSize - 1).clamp(1, 8),
-      addressFontSize: (originalSettings.addressFontSize).clamp(1, 8), // Keep address font as is
-      phoneFontSize: (originalSettings.phoneFontSize).clamp(1, 8), // Keep phone font as is
-      lineSpacingFactor: (originalSettings.lineSpacingFactor * 0.9).clamp(0.5, 3.0),
+      addressFontSize: (originalSettings.addressFontSize)
+          .clamp(1, 8), // Keep address font as is
+      phoneFontSize:
+          (originalSettings.phoneFontSize).clamp(1, 8), // Keep phone font as is
+      lineSpacingFactor:
+          (originalSettings.lineSpacingFactor * 0.9).clamp(0.5, 3.0),
     );
-    
+
     // Check if the adjusted settings fit
-    int estimatedHeight = _calculateContentHeight(label, labelConfig, candidateSettings);
+    int estimatedHeight =
+        _calculateContentHeight(label, labelConfig, candidateSettings);
     int labelHeightDots = (labelConfig.heightMm * 8).toInt();
-    
+
     if (estimatedHeight <= labelHeightDots - 20) {
       return candidateSettings;
     }
-    
+
     // If still doesn't fit, make more aggressive reductions
     return candidateSettings.copyWith(
       labelTitleFontSize: (originalSettings.labelTitleFontSize - 2).clamp(1, 8),
@@ -669,15 +694,16 @@ class ThermalPrinterService {
   /// Handles line breaks and long addresses with width constraint
   List<String> _splitAddress(String address, {int maxWidth = 35}) {
     if (address.isEmpty) return [];
-    
+
     // First handle explicit line breaks
-    List<String> lines = address.split('\n')
+    List<String> lines = address
+        .split('\n')
         .map((line) => line.trim())
         .where((line) => line.isNotEmpty)
         .toList();
-    
+
     List<String> finalLines = [];
-    
+
     for (String line in lines) {
       // If line fits within max width, add it
       if (line.length <= maxWidth) {
@@ -686,7 +712,7 @@ class ThermalPrinterService {
         // Split long lines at logical points
         List<String> words = line.split(' ');
         String currentLine = '';
-        
+
         for (String word in words) {
           if ((currentLine + ' ' + word).length <= maxWidth) {
             currentLine = currentLine.isEmpty ? word : '$currentLine $word';
@@ -700,13 +726,13 @@ class ThermalPrinterService {
             }
           }
         }
-        
+
         if (currentLine.isNotEmpty) {
           finalLines.add(currentLine);
         }
       }
     }
-    
+
     // Limit to maximum 3 lines for address
     if (finalLines.length > 3) {
       finalLines = finalLines.take(3).toList();
@@ -715,7 +741,7 @@ class ThermalPrinterService {
         finalLines[2] = finalLines[2].substring(0, maxWidth - 3) + '...';
       }
     }
-    
+
     return finalLines;
   }
 
@@ -732,13 +758,15 @@ class ThermalPrinterService {
 
       // Get current configurations
       final labelConfig = await LabelConfigService.instance.getCurrentConfig();
-      final fontSettings = await FontSettingsService.instance.getCurrentSettings();
-      
+      final fontSettings =
+          await FontSettingsService.instance.getCurrentSettings();
+
       // Build TSC commands manually as strings (more reliable for XPrinter)
       List<String> commands = [];
-      
+
       // Setup commands
-      commands.add('SIZE ${labelConfig.widthMm.toInt()} mm, ${labelConfig.heightMm.toInt()} mm');
+      commands.add(
+          'SIZE ${labelConfig.widthMm.toInt()} mm, ${labelConfig.heightMm.toInt()} mm');
       commands.add('GAP ${labelConfig.spacingMm.toInt()} mm, 0 mm');
       commands.add('DIRECTION 0,0'); // 0,0 = normal orientation (not rotated)
       commands.add('REFERENCE 0,0');
@@ -748,140 +776,184 @@ class ThermalPrinterService {
       commands.add('SET PARTIAL_CUTTER OFF');
       commands.add('SET TEAR ON');
       commands.add('CLS');
-      
+
       // Calculate available space
-      int labelWidthDots = (labelConfig.widthMm * 8).toInt(); // Convert mm to dots
+      int labelWidthDots =
+          (labelConfig.widthMm * 8).toInt(); // Convert mm to dots
       int labelHeightDots = (labelConfig.heightMm * 8).toInt();
-      int maxTextWidthDots = labelWidthDots - 40; // Margin space (20 dots each side)
-      
+      int maxTextWidthDots =
+          labelWidthDots - 40; // Margin space (20 dots each side)
+
       // Check if content fits with current font settings
-      int estimatedHeight = _calculateContentHeight(label, labelConfig, fontSettings);
-      bool contentFits = estimatedHeight <= labelHeightDots - 20; // 20 dots bottom margin
-      
+      int estimatedHeight =
+          _calculateContentHeight(label, labelConfig, fontSettings);
+      bool contentFits =
+          estimatedHeight <= labelHeightDots - 20; // 20 dots bottom margin
+
       // Use configured fonts or auto-size if enabled and needed
       FontSettings effectiveSettings = fontSettings;
       if (fontSettings.enableAutoSizing && !contentFits) {
-        effectiveSettings = _getAutoSizedFontSettings(fontSettings, label, labelConfig);
+        effectiveSettings =
+            _getAutoSizedFontSettings(fontSettings, label, labelConfig);
       }
-      
+
       // Calculate dynamic line spacing
       double lineSpacingFactor = effectiveSettings.lineSpacingFactor;
       if (!contentFits && fontSettings.enableAutoSizing) {
-        lineSpacingFactor = (lineSpacingFactor * 0.8).clamp(0.5, lineSpacingFactor); // Reduce spacing if tight
+        lineSpacingFactor = (lineSpacingFactor * 0.8)
+            .clamp(0.5, lineSpacingFactor); // Reduce spacing if tight
       }
-      
+
       // Calculate dynamic address width for wrapping
-      int maxAddressChars = maxTextWidthDots ~/ effectiveSettings.getTextDimensions('content')['width']!;
-      
+      int maxAddressChars = maxTextWidthDots ~/
+          effectiveSettings.getTextDimensions('content')['width']!;
+
       // Start layout
       int yPos = 20; // Start position in dots
-      
+
       print('Using font settings: $effectiveSettings');
-      print('Label space: ${labelWidthDots}x${labelHeightDots} dots, estimated height: $estimatedHeight, fits: $contentFits');
-      
+      print(
+          'Label space: ${labelWidthDots}x${labelHeightDots} dots, estimated height: $estimatedHeight, fits: $contentFits');
+
       // Calculate line spacing values
       final titleDims = effectiveSettings.getTextDimensions('title');
       final subtitleDims = effectiveSettings.getTextDimensions('subtitle');
       final contentDims = effectiveSettings.getTextDimensions('content');
       final smallDims = effectiveSettings.getTextDimensions('small');
-      
+
       int titleLineHeight = (titleDims['height']! * lineSpacingFactor).round();
-      int subtitleLineHeight = (subtitleDims['height']! * lineSpacingFactor * 1.5).round(); // Extra space for headers
-      int contentLineHeight = (contentDims['height']! * lineSpacingFactor * 1.2).round(); // More space for content
+      int subtitleLineHeight =
+          (subtitleDims['height']! * lineSpacingFactor * 1.5)
+              .round(); // Extra space for headers
+      int contentLineHeight = (contentDims['height']! * lineSpacingFactor * 1.2)
+          .round(); // More space for content
       int smallLineHeight = (smallDims['height']! * lineSpacingFactor).round();
       int sectionSpacing = contentLineHeight;
-      
+
       // Header - adjust based on label size
       if (labelConfig.heightMm >= 80) {
-        commands.add('TEXT 20,$yPos,${effectiveSettings.getTscFontCommand('labeltitle')},"SHIPPING LABEL"');
+        commands.add(
+            'TEXT 20,$yPos,${effectiveSettings.getTscFontCommand('labeltitle')},"SHIPPING LABEL"');
         yPos += titleLineHeight + sectionSpacing;
-        
-        commands.add('TEXT 20,$yPos,${effectiveSettings.getTscFontCommand('name')},"=========================="');
+
+        commands.add(
+            'TEXT 20,$yPos,${effectiveSettings.getTscFontCommand('name')},"=========================="');
         yPos += contentLineHeight;
       }
-      
+
       // TO section (appears first as per requirement)
-      commands.add('TEXT 20,$yPos,${effectiveSettings.getTscFontCommand('header')},"TO:"');
+      commands.add(
+          'TEXT 20,$yPos,${effectiveSettings.getTscFontCommand('header')},"TO:"');
       yPos += subtitleLineHeight + 5; // Extra spacing after header
-      
+
       // TO Name - Use font settings
-      commands.add('TEXT 20,$yPos,${effectiveSettings.getTscFontCommand('name')},"${_sanitizeText(label.toInfo.name)}"');
+      commands.add(
+          'TEXT 20,$yPos,${effectiveSettings.getTscFontCommand('name')},"${_sanitizeText(label.toInfo.name)}"');
       yPos += contentLineHeight + 10; // More spacing after name
-      
+
       // TO Address - handle multiple lines with dynamic width
       if (label.toInfo.address.isNotEmpty) {
-        List<String> addressLines = _splitAddress(label.toInfo.address, maxWidth: maxAddressChars);
+        List<String> addressLines =
+            _splitAddress(label.toInfo.address, maxWidth: maxAddressChars);
         for (String line in addressLines) {
-          commands.add('TEXT 20,$yPos,${effectiveSettings.getTscFontCommand('address')},"${_sanitizeText(line)}"');
-          yPos += contentLineHeight - 2; // Tighter spacing between address lines
+          commands.add(
+              'TEXT 20,$yPos,${effectiveSettings.getTscFontCommand('address')},"${_sanitizeText(line)}"');
+          yPos +=
+              contentLineHeight - 2; // Tighter spacing between address lines
         }
         yPos += 10; // Larger gap after address
       }
-      
+
       // TO Phone numbers
       String phoneText = '';
-      if (label.toInfo.phoneNumber1.isNotEmpty && label.toInfo.phoneNumber2.isNotEmpty) {
-        phoneText = 'TEL: ${_sanitizeText(label.toInfo.phoneNumber1)} / ${_sanitizeText(label.toInfo.phoneNumber2)}';
+      if (label.toInfo.phoneNumber1.isNotEmpty &&
+          label.toInfo.phoneNumber2.isNotEmpty) {
+        phoneText =
+            'TEL: ${_sanitizeText(label.toInfo.phoneNumber1)} / ${_sanitizeText(label.toInfo.phoneNumber2)}';
       } else if (label.toInfo.phoneNumber1.isNotEmpty) {
         phoneText = 'TEL: ${_sanitizeText(label.toInfo.phoneNumber1)}';
       } else if (label.toInfo.phoneNumber2.isNotEmpty) {
         phoneText = 'TEL: ${_sanitizeText(label.toInfo.phoneNumber2)}';
       }
-      
+
       if (phoneText.isNotEmpty) {
-        commands.add('TEXT 20,$yPos,${effectiveSettings.getTscFontCommand('phone')},"$phoneText"');
+        commands.add(
+            'TEXT 20,$yPos,${effectiveSettings.getTscFontCommand('phone')},"$phoneText"');
         yPos += smallLineHeight;
       }
       yPos += sectionSpacing;
-      
+
+      // COD (Cash on Delivery) amount - if enabled
+      if (label.codEnabled && label.codAmount > 0) {
+        String codText = 'COD: Rs ${label.codAmount.toStringAsFixed(2)}';
+        commands.add(
+            'TEXT 20,$yPos,${effectiveSettings.getTscFontCommand('name')},"$codText"');
+        yPos += contentLineHeight + 10; // Extra spacing after COD
+      }
+
       // FROM section
-      commands.add('TEXT 20,$yPos,${effectiveSettings.getTscFontCommand('header')},"FROM:"');
+      commands.add(
+          'TEXT 20,$yPos,${effectiveSettings.getTscFontCommand('header')},"FROM:"');
       yPos += subtitleLineHeight + 5; // Extra spacing after header
-      
+
       // FROM Name - Use font settings
-      commands.add('TEXT 20,$yPos,${effectiveSettings.getTscFontCommand('name')},"${_sanitizeText(label.fromInfo.name)}"');
+      commands.add(
+          'TEXT 20,$yPos,${effectiveSettings.getTscFontCommand('name')},"${_sanitizeText(label.fromInfo.name)}"');
       yPos += contentLineHeight + 10; // More spacing after name
-      
+
       // FROM Address - Optional, handle multiple lines with dynamic width
       if (label.fromInfo.address.isNotEmpty) {
-        List<String> addressLines = _splitAddress(label.fromInfo.address, maxWidth: maxAddressChars);
+        List<String> addressLines =
+            _splitAddress(label.fromInfo.address, maxWidth: maxAddressChars);
         for (String line in addressLines) {
-          commands.add('TEXT 20,$yPos,${effectiveSettings.getTscFontCommand('address')},"${_sanitizeText(line)}"');
-          yPos += contentLineHeight - 2; // Tighter spacing between address lines
+          commands.add(
+              'TEXT 20,$yPos,${effectiveSettings.getTscFontCommand('address')},"${_sanitizeText(line)}"');
+          yPos +=
+              contentLineHeight - 2; // Tighter spacing between address lines
         }
         yPos += 10; // Larger gap after address
       }
-      
+
       // FROM Phone numbers
       phoneText = '';
-      if (label.fromInfo.phoneNumber1.isNotEmpty && label.fromInfo.phoneNumber2.isNotEmpty) {
-        phoneText = 'TEL: ${_sanitizeText(label.fromInfo.phoneNumber1)} / ${_sanitizeText(label.fromInfo.phoneNumber2)}';
+      if (label.fromInfo.phoneNumber1.isNotEmpty &&
+          label.fromInfo.phoneNumber2.isNotEmpty) {
+        phoneText =
+            'TEL: ${_sanitizeText(label.fromInfo.phoneNumber1)} / ${_sanitizeText(label.fromInfo.phoneNumber2)}';
       } else if (label.fromInfo.phoneNumber1.isNotEmpty) {
         phoneText = 'TEL: ${_sanitizeText(label.fromInfo.phoneNumber1)}';
       } else if (label.fromInfo.phoneNumber2.isNotEmpty) {
         phoneText = 'TEL: ${_sanitizeText(label.fromInfo.phoneNumber2)}';
       }
-      
+
       if (phoneText.isNotEmpty) {
-        commands.add('TEXT 20,$yPos,${effectiveSettings.getTscFontCommand('phone')},"$phoneText"');
+        commands.add(
+            'TEXT 20,$yPos,${effectiveSettings.getTscFontCommand('phone')},"$phoneText"');
         yPos += smallLineHeight;
       }
       yPos += sectionSpacing;
-      
+
       // Order details - only if space is available and label is large enough
-      int remainingHeight = labelHeightDots - yPos - 20; // 20 dots bottom margin
-      if (labelConfig.heightMm >= 60 && remainingHeight >= (contentLineHeight * 2)) {
-        commands.add('TEXT 20,$yPos,${effectiveSettings.getTscFontCommand('name')},"LABEL ID: ${label.id}"');
+      int remainingHeight =
+          labelHeightDots - yPos - 20; // 20 dots bottom margin
+      if (labelConfig.heightMm >= 60 &&
+          remainingHeight >= (contentLineHeight * 2)) {
+        commands.add(
+            'TEXT 20,$yPos,${effectiveSettings.getTscFontCommand('name')},"LABEL ID: ${label.id}"');
         yPos += contentLineHeight;
-        
-        if (remainingHeight >= (contentLineHeight * 3)) { // Still have space for date
-          commands.add('TEXT 20,$yPos,${effectiveSettings.getTscFontCommand('phone')},"Date: ${label.createdAt.toString().substring(0, 10)}"');
+
+        if (remainingHeight >= (contentLineHeight * 3)) {
+          // Still have space for date
+          commands.add(
+              'TEXT 20,$yPos,${effectiveSettings.getTscFontCommand('phone')},"Date: ${label.createdAt.toString().substring(0, 10)}"');
           yPos += smallLineHeight;
         }
-        
+
         // Add barcode or QR code for label identification if space allows
-        if (labelConfig.heightMm >= 80 && remainingHeight >= (contentLineHeight * 3)) {
-          commands.add('TEXT 20,$yPos,${effectiveSettings.getTscFontCommand('phone')},"Tracking: ${label.id.substring(label.id.length - 8)}"');
+        if (labelConfig.heightMm >= 80 &&
+            remainingHeight >= (contentLineHeight * 3)) {
+          commands.add(
+              'TEXT 20,$yPos,${effectiveSettings.getTscFontCommand('phone')},"Tracking: ${label.id.substring(label.id.length - 8)}"');
         }
       }
 
@@ -889,52 +961,56 @@ class ThermalPrinterService {
       if (label.includeLogo) {
         await _addLogoToCommands(commands, label, labelConfig);
       }
-      
+
       // Print command
       commands.add('PRINT 1,1');
-      
+
       // Combine all commands
       String fullCommand = commands.join('\r\n') + '\r\n';
-      
+
       // Debug: Print the TSC commands being sent
       print('TSC Commands for Shipping Label ${label.id}:');
       if (!contentFits) {
         print('WARNING: Content may be tight for ${labelConfig.name} label');
-        print('Estimated height: ${estimatedHeight} dots, Available: ${labelHeightDots} dots');
+        print(
+            'Estimated height: ${estimatedHeight} dots, Available: ${labelHeightDots} dots');
       }
       print('--- START ---');
       print(fullCommand.replaceAll('\r\n', '\n'));
       print('--- END ---');
-      
+
       // Final connection check before sending data
       if (!BluetoothPrintPlus.isConnected) {
         print('Connection lost before sending print data');
         return false;
       }
-      
+
       // Send to printer with error handling
       print('Sending TSC commands to printer...');
-      await BluetoothPrintPlus.write(Uint8List.fromList(fullCommand.codeUnits)).timeout(
+      await BluetoothPrintPlus.write(Uint8List.fromList(fullCommand.codeUnits))
+          .timeout(
         const Duration(seconds: 10),
         onTimeout: () {
-          throw TimeoutException('Print command timeout', const Duration(seconds: 10));
+          throw TimeoutException(
+              'Print command timeout', const Duration(seconds: 10));
         },
       );
-      
+
       // Small delay to ensure command is processed
       await Future.delayed(const Duration(milliseconds: 200));
-      
+
       // Verify connection is still stable after printing
       if (BluetoothPrintPlus.isConnected) {
-        print('Shipping label ${label.id} printed successfully with ${labelConfig.widthMm.toInt()}mm × ${labelConfig.heightMm.toInt()}mm format');
+        print(
+            'Shipping label ${label.id} printed successfully with ${labelConfig.widthMm.toInt()}mm × ${labelConfig.heightMm.toInt()}mm format');
         _lastSuccessfulPrint = DateTime.now();
         return true;
       } else {
-        print('Warning: Connection lost after sending print command for label ${label.id}');
+        print(
+            'Warning: Connection lost after sending print command for label ${label.id}');
         _isConnected = false;
         return false;
       }
-      
     } catch (e) {
       print('Error printing single shipping label: $e');
       return false;
@@ -943,7 +1019,8 @@ class ThermalPrinterService {
 
   /// Add logo to TSC commands for label printing
   /// Places logo in the bottom right corner of the label
-  Future<void> _addLogoToCommands(List<String> commands, ShippingLabel label, LabelConfig labelConfig) async {
+  Future<void> _addLogoToCommands(List<String> commands, ShippingLabel label,
+      LabelConfig labelConfig) async {
     try {
       final logoService = LogoService();
       LogoConfig? logoConfig;
@@ -971,7 +1048,8 @@ class ThermalPrinterService {
       }
 
       // Calculate logo position (bottom right corner)
-      final labelWidthDots = (labelConfig.widthMm * 8).toInt(); // Convert mm to dots (203 DPI ≈ 8 dots/mm)
+      final labelWidthDots = (labelConfig.widthMm * 8)
+          .toInt(); // Convert mm to dots (203 DPI ≈ 8 dots/mm)
       final labelHeightDots = (labelConfig.heightMm * 8).toInt();
       final logoWidthDots = (logoConfig.width * 8).toInt();
       final logoHeightDots = (logoConfig.height * 8).toInt();
@@ -990,18 +1068,21 @@ class ThermalPrinterService {
       // Add TSC bitmap command for logo
       // For TSC printers, we need to use BITMAP command
       // Format: BITMAP x,y,width,height,mode,image_data
-      
+
       // Convert logo data to monochrome bitmap format suitable for TSC
-      final bitmapData = _convertLogoToBitmap(logoData.imageData, logoWidthDots, logoHeightDots);
-      
+      final bitmapData = _convertLogoToBitmap(
+          logoData.imageData, logoWidthDots, logoHeightDots);
+
       if (bitmapData.isNotEmpty) {
         // TSC BITMAP command - mode 0 for overwrite
-        commands.add('BITMAP $logoX,$logoY,$logoWidthDots,$logoHeightDots,0,${bitmapData}');
-        print('Added logo to label at position ($logoX,$logoY) with size ${logoWidthDots}x${logoHeightDots} dots');
+        commands.add(
+            'BITMAP $logoX,$logoY,$logoWidthDots,$logoHeightDots,0,${bitmapData}');
+        print(
+            'Added logo to label at position ($logoX,$logoY) with size ${logoWidthDots}x${logoHeightDots} dots');
       } else {
-        print('Failed to convert logo to bitmap format - skipping logo addition');
+        print(
+            'Failed to convert logo to bitmap format - skipping logo addition');
       }
-
     } catch (e) {
       print('Error adding logo to label: $e');
       // Don't throw - continue printing without logo
@@ -1010,12 +1091,13 @@ class ThermalPrinterService {
 
   /// Convert logo image data to TSC-compatible bitmap format
   /// Returns hex string representation of monochrome bitmap
-  String _convertLogoToBitmap(Uint8List imageData, int widthDots, int heightDots) {
+  String _convertLogoToBitmap(
+      Uint8List imageData, int widthDots, int heightDots) {
     try {
       // For TSC printers, we need monochrome bitmap data
       // Each bit represents one dot (1=black, 0=white)
       // Data should be organized row by row, with each row padded to byte boundary
-      
+
       final bytesPerRow = ((widthDots + 7) ~/ 8); // Round up to next byte
       final totalBytes = bytesPerRow * heightDots;
       final bitmapBytes = List<int>.filled(totalBytes, 0);
@@ -1023,19 +1105,21 @@ class ThermalPrinterService {
       // Convert image data to monochrome bitmap
       // This is a simplified conversion - for better results, use image processing
       for (int y = 0; y < heightDots && y * 4 < imageData.length; y++) {
-        for (int x = 0; x < widthDots && (y * widthDots + x) * 4 < imageData.length; x++) {
+        for (int x = 0;
+            x < widthDots && (y * widthDots + x) * 4 < imageData.length;
+            x++) {
           final pixelIndex = (y * widthDots + x) * 4; // Assuming RGBA format
-          
+
           if (pixelIndex + 2 < imageData.length) {
             // Get RGB values (ignore alpha for now)
             final r = imageData[pixelIndex];
             final g = imageData[pixelIndex + 1];
             final b = imageData[pixelIndex + 2];
-            
+
             // Convert to grayscale and threshold
             final gray = ((r + g + b) / 3).round();
             final isBlack = gray < 128; // Threshold at 50%
-            
+
             if (isBlack) {
               final byteIndex = y * bytesPerRow + (x ~/ 8);
               final bitIndex = 7 - (x % 8); // MSB first
@@ -1048,8 +1132,10 @@ class ThermalPrinterService {
       }
 
       // Convert bytes to hex string
-      return bitmapBytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join('').toUpperCase();
-      
+      return bitmapBytes
+          .map((b) => b.toRadixString(16).padLeft(2, '0'))
+          .join('')
+          .toUpperCase();
     } catch (e) {
       print('Error converting logo to bitmap: $e');
       return '';
