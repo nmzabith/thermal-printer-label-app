@@ -12,6 +12,14 @@ import 'label_config_service.dart';
 import 'font_settings_service.dart';
 import 'logo_service.dart';
 
+/// Footer data containing logo bytes and thanks message command
+class FooterData {
+  final Uint8List? logoBytes;
+  final String? thanksMessageCommand;
+
+  FooterData({this.logoBytes, this.thanksMessageCommand});
+}
+
 /// Thermal Printer Service using bluetooth_print_plus with TSC/TSPL commands
 /// Designed specifically for XPrinter XP-365B thermal label printer
 class ThermalPrinterService {
@@ -930,15 +938,34 @@ class ThermalPrinterService {
       }
 
       // Footer section: Logo (centered) and Thanks Message (centered below logo)
-      // Both are optional - calculate positions based on what's enabled
-      await _addFooterToCommands(
-          commands, label, labelConfig, labelWidthDots, labelHeightDots);
+      // Get footer data with logo bytes and thanks message command
+      final footerData = await _buildFooterData(
+          label, labelConfig, labelWidthDots, labelHeightDots);
 
-      // Print command
-      commands.add('PRINT 1,1');
+      // Build final command as byte array (to support binary logo data)
+      List<int> commandBytes = [];
 
-      // Combine all commands
-      String fullCommand = commands.join('\r\n') + '\r\n';
+      // Add all text commands
+      for (String cmd in commands) {
+        commandBytes.addAll(utf8.encode(cmd + '\r\n'));
+      }
+
+      // Add logo bytes if present (contains BITMAP command + raw binary data)
+      if (footerData.logoBytes != null) {
+        commandBytes.addAll(footerData.logoBytes!);
+      }
+
+      // Add thanks message if present
+      if (footerData.thanksMessageCommand != null) {
+        commandBytes
+            .addAll(utf8.encode(footerData.thanksMessageCommand! + '\r\n'));
+      }
+
+      // Add PRINT command
+      commandBytes.addAll(utf8.encode('PRINT 1,1\r\n'));
+
+      // Convert to Uint8List
+      final completeCommand = Uint8List.fromList(commandBytes);
 
       // Debug: Print the TSC commands being sent
       print('TSC Commands for Shipping Label ${label.id}:');
@@ -948,7 +975,10 @@ class ThermalPrinterService {
             'Estimated height: ${estimatedHeight} dots, Available: ${labelHeightDots} dots');
       }
       print('--- START ---');
-      print(fullCommand.replaceAll('\r\n', '\n'));
+      print('Text commands: ${commands.length}');
+      print('Has logo: ${footerData.logoBytes != null}');
+      print('Has thanks message: ${footerData.thanksMessageCommand != null}');
+      print('Total command size: ${completeCommand.length} bytes');
       print('--- END ---');
 
       // Final connection check before sending data
@@ -959,8 +989,7 @@ class ThermalPrinterService {
 
       // Send to printer with error handling
       print('Sending TSC commands to printer...');
-      await BluetoothPrintPlus.write(Uint8List.fromList(fullCommand.codeUnits))
-          .timeout(
+      await BluetoothPrintPlus.write(completeCommand).timeout(
         const Duration(seconds: 10),
         onTimeout: () {
           throw TimeoutException(
@@ -1023,16 +1052,27 @@ class ThermalPrinterService {
       // 1. Header Section: Logo + Shop Name
       final logoService = LogoService();
       final defaultLogo = await logoService.getDefaultLogoConfig();
+      Uint8List? headerLogoBytes;
       if (defaultLogo.shouldShowLogo && label.includeLogo) {
         final logoData = await logoService.processLogoForPrinting(defaultLogo);
         if (logoData != null) {
           final logoBytes = logoData.imageData;
           if (logoBytes.isNotEmpty) {
-            final hexData = logoBytes
-                .map((b) => b.toRadixString(16).padLeft(2, '0'))
-                .join('');
-            final widthBytes = (80 + 7) ~/ 8; // 80 dots width
-            commands.add('BITMAP $margin,$curY,$widthBytes,80,0,$hexData');
+            // Use actual logo dimensions from logoData
+            final logoWidth = logoData.width;
+            final logoHeight = logoData.height;
+            final widthBytes = (logoWidth + 7) ~/ 8;
+
+            // Build BITMAP command with raw binary data (StackOverflow solution)
+            List<int> logoCommandBytes = [];
+            logoCommandBytes.addAll(
+                utf8.encode('BITMAP $margin,$curY,$widthBytes,$logoHeight,0,'));
+            logoCommandBytes.addAll(logoBytes); // Raw binary data
+            logoCommandBytes.addAll(utf8.encode('\r\n'));
+            headerLogoBytes = Uint8List.fromList(logoCommandBytes);
+
+            print(
+                'Beta label logo: ${logoWidth}x$logoHeight, bytes: ${logoBytes.length}');
           }
         }
       }
@@ -1152,14 +1192,34 @@ class ThermalPrinterService {
         commands.add('TEXT $centerX,$footerY,"3",0,1,1,"$msg"');
       }
 
-      commands.add('PRINT 1,1');
+      // Build final command as byte array (to support binary logo data)
+      List<int> commandBytes = [];
 
-      String fullCommand = commands.join('\r\n') + '\r\n';
+      // Add all text commands FIRST (including setup commands like SIZE, CLS, etc)
+      for (String cmd in commands) {
+        commandBytes.addAll(utf8.encode(cmd + '\r\n'));
+      }
+
+      // Add logo bytes AFTER text commands (logo BITMAP command goes in the content area)
+      if (headerLogoBytes != null) {
+        commandBytes.addAll(headerLogoBytes);
+      }
+
+      // Add PRINT command
+      commandBytes.addAll(utf8.encode('PRINT 1,1\r\n'));
+
+      final completeCommand = Uint8List.fromList(commandBytes);
+
       print('--- BETA DELIVERY LABEL COMMANDS ---');
-      print(fullCommand);
+      print('Text commands: ${commands.length}');
+      print('Has header logo: ${headerLogoBytes != null}');
+      if (headerLogoBytes != null) {
+        print('Logo bytes size: ${headerLogoBytes!.length}');
+      }
+      print('Total command size: ${completeCommand.length} bytes');
 
       // Send to printer
-      await BluetoothPrintPlus.write(Uint8List.fromList(fullCommand.codeUnits));
+      await BluetoothPrintPlus.write(completeCommand);
       await Future.delayed(const Duration(milliseconds: 500)); // Wait for print
 
       return true;
@@ -1303,6 +1363,131 @@ class ThermalPrinterService {
     } catch (e) {
       print('Error adding footer to label: $e');
       // Don't throw - continue printing without footer
+    }
+  }
+
+  /// Build footer data with logo bytes and thanks message command
+  /// Returns FooterData containing raw binary logo BITMAP command and text command for thanks message
+  Future<FooterData> _buildFooterData(ShippingLabel label,
+      LabelConfig labelConfig, int labelWidthDots, int labelHeightDots) async {
+    try {
+      final logoService = LogoService();
+
+      // Get logo config if logo is enabled
+      LogoConfig? logoConfig;
+      Uint8List? logoBytes;
+      int logoWidthDots = 0;
+      int logoHeightDots = 0;
+
+      if (label.includeLogo) {
+        if (label.fromInfo.hasLogo) {
+          logoConfig = label.fromInfo.logoConfig!;
+        } else {
+          logoConfig = await logoService.getDefaultLogoConfig();
+        }
+
+        if (logoConfig != null && logoConfig.shouldShowLogo) {
+          final logoData = await logoService.processLogoForPrinting(logoConfig);
+          if (logoData != null) {
+            // Limit logo size to max 80x80 dots (10mm x 10mm)
+            final maxLogoDots = 80;
+            logoWidthDots =
+                (logoConfig.width * 8).toInt().clamp(8, maxLogoDots);
+            logoHeightDots =
+                (logoConfig.height * 8).toInt().clamp(8, maxLogoDots);
+            logoBytes = logoData.imageData;
+          }
+        }
+      }
+
+      // Get thanks message if enabled
+      String? thanksMessage;
+      if (label.includeThanksMessage) {
+        final defaultLogoConfig = await logoService.getDefaultLogoConfig();
+        if (defaultLogoConfig != null &&
+            defaultLogoConfig.thanksMessageEnabled) {
+          thanksMessage = defaultLogoConfig.thanksMessage;
+          if (thanksMessage.isEmpty) thanksMessage = null;
+        }
+      }
+
+      // Layout constants
+      const int bottomMargin = 20;
+      const int messageHeight = 20;
+      const int logoToMsgGap = 8;
+
+      // Calculate total footer height
+      int footerHeight = 0;
+      if (thanksMessage != null) {
+        footerHeight += messageHeight;
+      }
+      if (logoBytes != null && logoBytes.isNotEmpty) {
+        if (footerHeight > 0) footerHeight += logoToMsgGap;
+        footerHeight += logoHeightDots;
+      }
+
+      // Calculate footer starting Y position
+      int footerTopY = labelHeightDots - bottomMargin - footerHeight;
+      if (footerTopY < 100) {
+        footerTopY = 100;
+      }
+
+      int currentY = footerTopY;
+
+      // Build logo BITMAP command as byte array
+      Uint8List? logoBitmapBytes;
+      if (logoBytes != null && logoBytes.isNotEmpty) {
+        final bytesPerRow = (logoWidthDots + 7) ~/ 8;
+        final logoX = ((labelWidthDots - logoWidthDots) / 2).toInt();
+        final logoY = currentY;
+
+        if (logoY >= 0 &&
+            logoX >= 0 &&
+            logoX + logoWidthDots <= labelWidthDots) {
+          // Build BITMAP command with raw binary data (StackOverflow solution)
+          List<int> logoCommandBytes = [];
+
+          // BITMAP command header (text, ending with comma)
+          logoCommandBytes.addAll(utf8
+              .encode('BITMAP $logoX,$logoY,$bytesPerRow,$logoHeightDots,0,'));
+
+          // Add raw binary bitmap data
+          logoCommandBytes.addAll(logoBytes);
+
+          // Add line feed
+          logoCommandBytes.addAll(utf8.encode('\r\n'));
+
+          logoBitmapBytes = Uint8List.fromList(logoCommandBytes);
+
+          print(
+              'Built logo BITMAP: ($logoX,$logoY) ${logoWidthDots}x${logoHeightDots} dots');
+          currentY += logoHeightDots + logoToMsgGap;
+        }
+      }
+
+      // Build thanks message TEXT command
+      String? thanksMessageCmd;
+      if (thanksMessage != null) {
+        final charWidth = 16;
+        final textWidthDots = thanksMessage.length * charWidth;
+        final textX = ((labelWidthDots - textWidthDots) / 2).toInt();
+        final textY = currentY;
+
+        if (textY >= 0 && textX >= 0) {
+          final clampedX = textX.clamp(5, labelWidthDots - textWidthDots - 5);
+          thanksMessageCmd =
+              'TEXT $clampedX,$textY,"3",0,1,1,"${_sanitizeText(thanksMessage)}"';
+          print('Built thanks message: ($clampedX,$textY)');
+        }
+      }
+
+      return FooterData(
+        logoBytes: logoBitmapBytes,
+        thanksMessageCommand: thanksMessageCmd,
+      );
+    } catch (e) {
+      print('Error building footer data: $e');
+      return FooterData();
     }
   }
 

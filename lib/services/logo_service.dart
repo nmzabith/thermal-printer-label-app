@@ -180,8 +180,8 @@ class LogoService {
       // Convert to grayscale for better thermal printing
       processedImage = img.grayscale(processedImage);
 
-      // Resize if too large (max 25mm at 203 DPI = ~200 pixels)
-      const maxPixels = 200;
+      // Resize if too large (max 80 dots = 10mm at 203 DPI for labels)
+      const maxPixels = 80;
       if (processedImage.width > maxPixels ||
           processedImage.height > maxPixels) {
         if (processedImage.width > processedImage.height) {
@@ -351,6 +351,11 @@ class LogoService {
       final bytesPerRow = (width + 7) ~/ 8;
       final bitmapData = Uint8List(bytesPerRow * height);
 
+      // Initialize all bits to 1 (white) - BITMAP command expects 0=black, 1=white
+      for (int i = 0; i < bitmapData.length; i++) {
+        bitmapData[i] = 0xFF;
+      }
+
       for (int y = 0; y < height; y++) {
         for (int x = 0; x < width; x++) {
           final pixel = processed.getPixel(x, y);
@@ -359,13 +364,32 @@ class LogoService {
           final luminance = img.getLuminance(pixel);
 
           if (luminance < 128) {
-            // Black pixel
+            // Black pixel - clear bit (set to 0)
             final byteIndex = (y * bytesPerRow) + (x ~/ 8);
             final bitIndex = 7 - (x % 8); // MSB first
-            bitmapData[byteIndex] |= (1 << bitIndex);
+            bitmapData[byteIndex] &= ~(1 << bitIndex); // Clear bit for black
           }
         }
       }
+
+      // Debug: Check bitmap data
+      int blackPixelCount = 0;
+      for (int i = 0; i < bitmapData.length; i++) {
+        // Count bits that are 0 (black pixels)
+        int byte = bitmapData[i];
+        for (int bit = 0; bit < 8; bit++) {
+          if ((byte & (1 << bit)) == 0) {
+            blackPixelCount++;
+          }
+        }
+      }
+
+      print('Logo bitmap generated: ${width}x$height');
+      print('Bitmap data size: ${bitmapData.length} bytes');
+      print('Black pixels: $blackPixelCount / ${width * height}');
+      print(
+          'First 10 bytes: ${bitmapData.sublist(0, bitmapData.length < 10 ? bitmapData.length : 10)}');
+      print('Last 10 bytes: ${bitmapData.sublist(bitmapData.length - 10)}');
 
       return bitmapData;
     } catch (e) {
