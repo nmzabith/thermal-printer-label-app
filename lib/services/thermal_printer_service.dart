@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:typed_data';
 import 'package:bluetooth_print_plus/bluetooth_print_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -1264,7 +1265,8 @@ class ThermalPrinterService {
         if (logoY >= 0 &&
             logoX >= 0 &&
             logoX + logoWidthDots <= labelWidthDots) {
-          // Use hex encoding for TSC bitmap
+          // TODO: Fix logo printing using same approach as image printing
+          // For now, using hex encoding (produces vertical lines)
           final hexData = logoBytes
               .map((b) => b.toRadixString(16).padLeft(2, '0'))
               .join('');
@@ -1422,6 +1424,207 @@ class ThermalPrinterService {
       print('Error adding thanks message: $e');
       // Don't fail the print job if thanks message fails
     }
+  }
+
+  /// Print image sticker using TSPL BITMAP command
+  /// Takes pre-processed bitmap data and prints it centered on the label
+  Future<bool> printImageSticker(
+    Uint8List bitmapData,
+    int width,
+    int height,
+    LabelConfig labelConfig,
+  ) async {
+    try {
+      // Check and ensure connection health before printing
+      bool connectionHealthy = await _ensureConnection();
+      if (!connectionHealthy) {
+        throw Exception('Printer connection not available or unstable');
+      }
+
+      print(
+          'Printing image sticker: ${width}x$height on ${labelConfig.name} label');
+
+      // Build TSC commands
+      List<String> commands = [];
+
+      // Setup commands
+      commands.add(
+          'SIZE ${labelConfig.widthMm.toInt()} mm, ${labelConfig.heightMm.toInt()} mm');
+      commands.add('GAP ${labelConfig.spacingMm.toInt()} mm, 0 mm');
+      commands.add('DIRECTION 0,0'); // Normal orientation
+      commands.add('REFERENCE 0,0');
+      commands.add('OFFSET 0 mm');
+      commands.add('SET PEEL OFF');
+      commands.add('SET CUTTER OFF');
+      commands.add('SET PARTIAL_CUTTER OFF');
+      commands.add('SET TEAR ON');
+      commands.add('CLS');
+
+      // Calculate centering position
+      final labelWidthDots = (labelConfig.widthMm * 8).toInt();
+      final labelHeightDots = (labelConfig.heightMm * 8).toInt();
+      final xPos =
+          ((labelWidthDots - width) / 2).toInt().clamp(0, labelWidthDots);
+      final yPos =
+          ((labelHeightDots - height) / 2).toInt().clamp(0, labelHeightDots);
+
+      // Calculate bitmap width in bytes
+      final widthBytes = (width + 7) ~/ 8;
+
+      // Use StackOverflow solution: https://stackoverflow.com/questions/76006152/
+      // Key: Send BITMAP command as text, then raw binary data, then \r\n
+      // Build command as byte array mixing text and binary data
+
+      List<int> commandBytes = [];
+
+      // Add setup commands as text
+      for (String cmd in commands) {
+        commandBytes.addAll(utf8.encode(cmd + '\r\n'));
+      }
+
+      // Add BITMAP command header (text, ending with comma)
+      commandBytes
+          .addAll(utf8.encode('BITMAP $xPos,$yPos,$widthBytes,$height,0,'));
+
+      // Add raw binary bitmap data directly (NOT hex encoded!)
+      commandBytes.addAll(bitmapData);
+
+      // Add line feed after bitmap data
+      commandBytes.addAll(utf8.encode('\r\n'));
+
+      // Add PRINT command
+      commandBytes.addAll(utf8.encode('PRINT 1,1\r\n'));
+
+      // Convert to Uint8List
+      final completeCommand = Uint8List.fromList(commandBytes);
+
+      // Debug output
+      print('TSC Commands for Image Print (StackOverflow method):');
+      print('--- START ---');
+      print('Image size: ${width}x$height dots');
+      print('Width in bytes: $widthBytes');
+      print('Bitmap data size: ${bitmapData.length} bytes');
+      print('Total command size: ${completeCommand.length} bytes');
+      print('Position: ($xPos, $yPos)');
+      print('--- END ---');
+
+      // Send complete command
+      await BluetoothPrintPlus.write(completeCommand);
+
+      // Small delay to ensure printer processes the command
+      await Future.delayed(const Duration(milliseconds: 500));
+
+      _lastSuccessfulPrint = DateTime.now();
+      print('Image sticker print command sent successfully');
+      return true;
+    } catch (e) {
+      print('Error printing image sticker: $e');
+      return false;
+    }
+  }
+
+  /// Create a BMP file from raw bitmap data
+  /// Returns a complete BMP file with headers
+  Uint8List _createBMPFile(Uint8List bitmapData, int width, int height) {
+    // BMP file structure:
+    // 1. BMP File Header (14 bytes)
+    // 2. DIB Header (40 bytes for BITMAPINFOHEADER)
+    // 3. Color Palette (8 bytes for monochrome: 2 colors × 4 bytes)
+    // 4. Pixel Data (bitmap data, padded to 4-byte boundary per row)
+
+    final bytesPerRow = (width + 7) ~/ 8;
+    final paddedBytesPerRow =
+        ((bytesPerRow + 3) ~/ 4) * 4; // Pad to 4-byte boundary
+    final pixelDataSize = paddedBytesPerRow * height;
+    final fileSize = 14 + 40 + 8 + pixelDataSize;
+
+    final bmpFile = Uint8List(fileSize);
+    int offset = 0;
+
+    // BMP File Header (14 bytes)
+    bmpFile[offset++] = 0x42; // 'B'
+    bmpFile[offset++] = 0x4D; // 'M'
+    _writeInt32(bmpFile, offset, fileSize);
+    offset += 4; // File size
+    _writeInt16(bmpFile, offset, 0);
+    offset += 2; // Reserved
+    _writeInt16(bmpFile, offset, 0);
+    offset += 2; // Reserved
+    _writeInt32(bmpFile, offset, 14 + 40 + 8);
+    offset += 4; // Pixel data offset
+
+    // DIB Header - BITMAPINFOHEADER (40 bytes)
+    _writeInt32(bmpFile, offset, 40);
+    offset += 4; // Header size
+    _writeInt32(bmpFile, offset, width);
+    offset += 4; // Width
+    _writeInt32(bmpFile, offset, -height);
+    offset += 4; // Height (negative = top-down)
+    _writeInt16(bmpFile, offset, 1);
+    offset += 2; // Color planes
+    _writeInt16(bmpFile, offset, 1);
+    offset += 2; // Bits per pixel (1 = monochrome)
+    _writeInt32(bmpFile, offset, 0);
+    offset += 4; // Compression (0 = none)
+    _writeInt32(bmpFile, offset, pixelDataSize);
+    offset += 4; // Image size
+    _writeInt32(bmpFile, offset, 2835);
+    offset += 4; // X pixels per meter (~72 DPI)
+    _writeInt32(bmpFile, offset, 2835);
+    offset += 4; // Y pixels per meter
+    _writeInt32(bmpFile, offset, 2);
+    offset += 4; // Colors in palette
+    _writeInt32(bmpFile, offset, 0);
+    offset += 4; // Important colors
+
+    // Color Palette (8 bytes: 2 colors × 4 bytes BGRA)
+    // Color 0: Black (0,0,0,0)
+    bmpFile[offset++] = 0;
+    bmpFile[offset++] = 0;
+    bmpFile[offset++] = 0;
+    bmpFile[offset++] = 0;
+    // Color 1: White (255,255,255,0)
+    bmpFile[offset++] = 255;
+    bmpFile[offset++] = 255;
+    bmpFile[offset++] = 255;
+    bmpFile[offset++] = 0;
+
+    // Pixel Data (with padding)
+    for (int y = 0; y < height; y++) {
+      // Copy row data
+      for (int x = 0; x < bytesPerRow; x++) {
+        bmpFile[offset++] = bitmapData[y * bytesPerRow + x];
+      }
+      // Add padding to reach 4-byte boundary
+      for (int p = bytesPerRow; p < paddedBytesPerRow; p++) {
+        bmpFile[offset++] = 0;
+      }
+    }
+
+    return bmpFile;
+  }
+
+  /// Write 32-bit integer in little-endian format
+  void _writeInt32(Uint8List buffer, int offset, int value) {
+    buffer[offset] = value & 0xFF;
+    buffer[offset + 1] = (value >> 8) & 0xFF;
+    buffer[offset + 2] = (value >> 16) & 0xFF;
+    buffer[offset + 3] = (value >> 24) & 0xFF;
+  }
+
+  /// Write 16-bit integer in little-endian format
+  void _writeInt16(Uint8List buffer, int offset, int value) {
+    buffer[offset] = value & 0xFF;
+    buffer[offset + 1] = (value >> 8) & 0xFF;
+  }
+
+  /// Helper method to count set bits in a byte
+  int _countSetBits(int byte) {
+    int count = 0;
+    for (int i = 0; i < 8; i++) {
+      if ((byte & (1 << i)) != 0) count++;
+    }
+    return count;
   }
 
   /// Clean up resources and cancel subscriptions

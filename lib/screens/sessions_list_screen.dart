@@ -9,6 +9,7 @@ import 'font_settings_screen.dart';
 import 'label_designer_list_screen.dart';
 import 'material3_showcase_screen.dart';
 import 'logo_manager_screen.dart';
+import 'image_sticker_print_screen.dart';
 
 class SessionsListScreen extends StatefulWidget {
   const SessionsListScreen({super.key});
@@ -200,6 +201,13 @@ class _SessionsListScreenState extends State<SessionsListScreen> {
                     ),
                   );
                   break;
+                case 'image_sticker_print':
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => const ImageStickerPrintScreen(),
+                    ),
+                  );
+                  break;
                 case 'material3_showcase':
                   Navigator.of(context).push(
                     MaterialPageRoute(
@@ -237,6 +245,16 @@ class _SessionsListScreenState extends State<SessionsListScreen> {
                     Icon(Icons.design_services),
                     SizedBox(width: 8),
                     Text('Label Designer'),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'image_sticker_print',
+                child: Row(
+                  children: [
+                    Icon(Icons.image_outlined),
+                    SizedBox(width: 8),
+                    Text('Image Sticker Print'),
                   ],
                 ),
               ),
