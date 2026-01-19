@@ -1152,6 +1152,9 @@ class ThermalPrinterService {
         curY += 25;
       }
 
+      // Add extra spacing before COD
+      curY += 15;
+
       // COD (Moved inside SHIP TO section)
       if (label.codEnabled) {
         String codText = 'COD: Rs ${label.codAmount.toStringAsFixed(2)}';
