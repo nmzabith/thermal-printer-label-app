@@ -9,6 +9,8 @@ class ShippingLabel {
   bool codEnabled; // Whether Cash on Delivery is enabled
   double codAmount; // COD amount in LKR (Sri Lankan Rupee)
   bool includeThanksMessage; // Whether to include thanks message on this label
+  bool
+      useBetaDeliveryFormat; // Beta: Use delivery label format with logo header (testing only)
 
   ShippingLabel({
     required this.id,
@@ -19,6 +21,7 @@ class ShippingLabel {
     this.codEnabled = false, // Default to false
     this.codAmount = 0.0, // Default to 0
     this.includeThanksMessage = true, // Default to true (enabled)
+    this.useBetaDeliveryFormat = false, // Default to false (beta testing only)
   }) : createdAt = createdAt ?? DateTime.now();
 
   // Create empty label
@@ -30,7 +33,8 @@ class ShippingLabel {
         includeLogo = false,
         codEnabled = false,
         codAmount = 0.0,
-        includeThanksMessage = true;
+        includeThanksMessage = true,
+        useBetaDeliveryFormat = false;
 
   // Generate unique ID
   static String _generateId() {
@@ -48,6 +52,7 @@ class ShippingLabel {
       'codEnabled': codEnabled,
       'codAmount': codAmount,
       'includeThanksMessage': includeThanksMessage,
+      'useBetaDeliveryFormat': useBetaDeliveryFormat,
     };
   }
 
@@ -62,6 +67,7 @@ class ShippingLabel {
       codEnabled: map['codEnabled'] as bool? ?? false,
       codAmount: (map['codAmount'] as num?)?.toDouble() ?? 0.0,
       includeThanksMessage: map['includeThanksMessage'] as bool? ?? true,
+      useBetaDeliveryFormat: map['useBetaDeliveryFormat'] as bool? ?? false,
     );
   }
 

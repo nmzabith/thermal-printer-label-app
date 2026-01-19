@@ -8,7 +8,8 @@ class LabelConfigService {
   static const String _customConfigsKey = 'custom_label_configs';
 
   static LabelConfigService? _instance;
-  static LabelConfigService get instance => _instance ??= LabelConfigService._();
+  static LabelConfigService get instance =>
+      _instance ??= LabelConfigService._();
   LabelConfigService._();
 
   SharedPreferences? _prefs;
@@ -21,15 +22,28 @@ class LabelConfigService {
   /// Get current selected label configuration
   Future<LabelConfig> getCurrentConfig() async {
     await initialize();
-    
+
     final configName = _prefs!.getString(_labelConfigKey);
+    print(
+        'DEBUG: LabelConfigService.getCurrentConfig - Saved name in prefs: "$configName"');
+
     if (configName != null) {
-      final config = LabelConfigs.findByName(configName);
-      if (config != null) {
-        return config;
+      final allConfigs = await getAllConfigs();
+      print('DEBUG: Found ${allConfigs.length} available configurations');
+
+      try {
+        final match = allConfigs
+            .firstWhere((config) => config.name.trim() == configName.trim());
+        print('DEBUG: Match found: ${match.name}');
+        return match;
+      } catch (e) {
+        print(
+            'DEBUG: Saved config name "$configName" not found in: ${allConfigs.map((c) => c.name).toList()}');
       }
+    } else {
+      print('DEBUG: No label config name found in SharedPreferences');
     }
-    
+
     // Return default if none saved or not found
     return LabelConfigs.defaultConfig;
   }
@@ -37,13 +51,15 @@ class LabelConfigService {
   /// Save selected label configuration
   Future<bool> saveCurrentConfig(LabelConfig config) async {
     await initialize();
-    
+
     try {
-      await _prefs!.setString(_labelConfigKey, config.name);
-      print('Saved label config: ${config.name}');
-      return true;
+      final success =
+          await _prefs!.setString(_labelConfigKey, config.name.trim());
+      print(
+          'DEBUG: Saved label config to prefs: "${config.name.trim()}" (Success: $success)');
+      return success;
     } catch (e) {
-      print('Error saving label config: $e');
+      print('DEBUG: Error saving label config: $e');
       return false;
     }
   }
@@ -51,22 +67,22 @@ class LabelConfigService {
   /// Get all available configurations (presets + custom)
   Future<List<LabelConfig>> getAllConfigs() async {
     await initialize();
-    
+
     List<LabelConfig> allConfigs = List.from(LabelConfigs.presets);
-    
+
     // Add custom configurations if any
     final customConfigs = await getCustomConfigs();
     allConfigs.addAll(customConfigs);
-    
+
     return allConfigs;
   }
 
   /// Get custom configurations saved by user
   Future<List<LabelConfig>> getCustomConfigs() async {
     await initialize();
-    
+
     List<LabelConfig> customConfigs = [];
-    
+
     try {
       final customConfigsJson = _prefs!.getStringList(_customConfigsKey) ?? [];
       for (String configString in customConfigsJson) {
@@ -90,26 +106,27 @@ class LabelConfigService {
     } catch (e) {
       print('Error getting custom configs: $e');
     }
-    
+
     return customConfigs;
   }
 
   /// Save a custom label configuration
   Future<bool> saveCustomConfig(LabelConfig config) async {
     await initialize();
-    
+
     try {
       final customConfigsJson = _prefs!.getStringList(_customConfigsKey) ?? [];
-      
+
       // Remove existing config with same name
       customConfigsJson.removeWhere((c) => c.startsWith('${config.name}|'));
-      
+
       // Add new config as pipe-separated string
-      final configString = '${config.name}|${config.description}|${config.widthMm}|${config.heightMm}|${config.spacingMm}';
+      final configString =
+          '${config.name}|${config.description}|${config.widthMm}|${config.heightMm}|${config.spacingMm}';
       customConfigsJson.add(configString);
-      
+
       await _prefs!.setStringList(_customConfigsKey, customConfigsJson);
-      
+
       print('Saved custom label config: ${config.name}');
       return true;
     } catch (e) {
@@ -127,12 +144,13 @@ class LabelConfigService {
   /// Remove a custom configuration
   Future<bool> removeCustomConfig(String configName) async {
     await initialize();
-    
+
     try {
       final customConfigsJson = _prefs!.getStringList(_customConfigsKey) ?? [];
-      customConfigsJson.removeWhere((config) => config.startsWith('$configName|'));
+      customConfigsJson
+          .removeWhere((config) => config.startsWith('$configName|'));
       await _prefs!.setStringList(_customConfigsKey, customConfigsJson);
-      
+
       print('Removed custom config: $configName');
       return true;
     } catch (e) {
@@ -144,7 +162,7 @@ class LabelConfigService {
   /// Reset to default configuration
   Future<bool> resetToDefault() async {
     await initialize();
-    
+
     try {
       await _prefs!.remove(_labelConfigKey);
       print('Reset to default label configuration');

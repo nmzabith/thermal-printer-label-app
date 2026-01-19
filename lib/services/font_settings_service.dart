@@ -6,7 +6,7 @@ import '../models/font_settings.dart';
 class FontSettingsService {
   static const String _fontSettingsKey = 'font_settings';
   static const String _presetSettingsKey = 'font_settings_preset';
-  
+
   static FontSettingsService? _instance;
   static FontSettingsService get instance {
     _instance ??= FontSettingsService._internal();
@@ -20,12 +20,12 @@ class FontSettingsService {
     try {
       final prefs = await SharedPreferences.getInstance();
       final jsonString = prefs.getString(_fontSettingsKey);
-      
+
       if (jsonString != null) {
         final json = jsonDecode(jsonString);
         return FontSettings.fromJson(json);
       }
-      
+
       return FontSettings.defaultSettings;
     } catch (e) {
       print('Error loading font settings: $e');
@@ -39,10 +39,10 @@ class FontSettingsService {
       final prefs = await SharedPreferences.getInstance();
       final jsonString = jsonEncode(settings.toJson());
       await prefs.setString(_fontSettingsKey, jsonString);
-      
+
       // Clear preset selection since this is custom
       await prefs.remove(_presetSettingsKey);
-      
+
       print('Font settings saved: $settings');
       return true;
     } catch (e) {
@@ -66,10 +66,10 @@ class FontSettingsService {
   Future<bool> applyPreset(String presetName) async {
     try {
       FontSettings settings;
-      
+
       // Normalize preset name (remove spaces, lowercase)
       String normalizedName = presetName.toLowerCase().replaceAll(' ', '');
-      
+
       switch (normalizedName) {
         case 'default':
           settings = FontSettings.defaultSettings;
@@ -86,12 +86,12 @@ class FontSettingsService {
           print('Unknown preset: $presetName (normalized: $normalizedName)');
           return false;
       }
-      
+
       final prefs = await SharedPreferences.getInstance();
       final jsonString = jsonEncode(settings.toJson());
       await prefs.setString(_fontSettingsKey, jsonString);
       await prefs.setString(_presetSettingsKey, presetName);
-      
+
       print('Applied font preset: $presetName - $settings');
       return true;
     } catch (e) {
@@ -106,7 +106,7 @@ class FontSettingsService {
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove(_fontSettingsKey);
       await prefs.remove(_presetSettingsKey);
-      
+
       print('Font settings reset to default');
       return true;
     } catch (e) {
@@ -129,13 +129,13 @@ class FontSettingsService {
     try {
       final current = await getCurrentSettings();
       final presets = getAvailablePresets();
-      
+
       for (final entry in presets.entries) {
         if (entry.value == current) {
           return entry.key;
         }
       }
-      
+
       return null; // Custom settings
     } catch (e) {
       print('Error detecting current preset: $e');
@@ -146,18 +146,24 @@ class FontSettingsService {
   /// Validate font settings
   bool validateSettings(FontSettings settings) {
     // Check font size ranges (1-8 for TSC printers)
-    if (settings.labelTitleFontSize < 1 || settings.labelTitleFontSize > 8) return false;
-    if (settings.headerFontSize < 1 || settings.headerFontSize > 8) return false;
+    if (settings.labelTitleFontSize < 1 || settings.labelTitleFontSize > 8)
+      return false;
+    if (settings.headerFontSize < 1 || settings.headerFontSize > 8)
+      return false;
     if (settings.nameFontSize < 1 || settings.nameFontSize > 8) return false;
-    if (settings.addressFontSize < 1 || settings.addressFontSize > 8) return false;
+    if (settings.addressFontSize < 1 || settings.addressFontSize > 8)
+      return false;
     if (settings.phoneFontSize < 1 || settings.phoneFontSize > 8) return false;
-    
+    if (settings.codFontSize < 1 || settings.codFontSize > 8) return false;
+
     // Check line spacing factor
-    if (settings.lineSpacingFactor < 0.5 || settings.lineSpacingFactor > 3.0) return false;
-    
+    if (settings.lineSpacingFactor < 0.5 || settings.lineSpacingFactor > 3.0)
+      return false;
+
     // Check max lines
-    if (settings.maxLinesAddress < 1 || settings.maxLinesAddress > 10) return false;
-    
+    if (settings.maxLinesAddress < 1 || settings.maxLinesAddress > 10)
+      return false;
+
     return true;
   }
 

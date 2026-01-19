@@ -20,6 +20,10 @@ class FontSettings {
   final int labelTitleFontSize; // For main label title
   final bool labelTitleBold;
 
+  // COD fonts (Cash on Delivery amount)
+  final int codFontSize;
+  final bool codBold;
+
   final double lineSpacingFactor;
   final bool enableAutoSizing;
   final int maxLinesAddress;
@@ -35,6 +39,8 @@ class FontSettings {
     this.phoneBold = false,
     this.labelTitleFontSize = 5, // Main title
     this.labelTitleBold = true,
+    this.codFontSize = 3, // COD Amount
+    this.codBold = true,
     this.lineSpacingFactor = 1.2,
     this.enableAutoSizing = true,
     this.maxLinesAddress = 3,
@@ -55,6 +61,8 @@ class FontSettings {
     phoneBold: false,
     labelTitleFontSize: 3, // Title smaller
     labelTitleBold: true,
+    codFontSize: 2, // COD smaller
+    codBold: true,
     lineSpacingFactor: 1.0,
     enableAutoSizing: true,
     maxLinesAddress: 2,
@@ -72,6 +80,8 @@ class FontSettings {
     phoneBold: false,
     labelTitleFontSize: 6, // Title largest
     labelTitleBold: true,
+    codFontSize: 4, // COD larger
+    codBold: true,
     lineSpacingFactor: 1.3,
     enableAutoSizing: true,
     maxLinesAddress: 4,
@@ -89,6 +99,8 @@ class FontSettings {
     bool? phoneBold,
     int? labelTitleFontSize,
     bool? labelTitleBold,
+    int? codFontSize,
+    bool? codBold,
     double? lineSpacingFactor,
     bool? enableAutoSizing,
     int? maxLinesAddress,
@@ -104,6 +116,8 @@ class FontSettings {
       phoneBold: phoneBold ?? this.phoneBold,
       labelTitleFontSize: labelTitleFontSize ?? this.labelTitleFontSize,
       labelTitleBold: labelTitleBold ?? this.labelTitleBold,
+      codFontSize: codFontSize ?? this.codFontSize,
+      codBold: codBold ?? this.codBold,
       lineSpacingFactor: lineSpacingFactor ?? this.lineSpacingFactor,
       enableAutoSizing: enableAutoSizing ?? this.enableAutoSizing,
       maxLinesAddress: maxLinesAddress ?? this.maxLinesAddress,
@@ -123,6 +137,8 @@ class FontSettings {
       'phoneBold': phoneBold,
       'labelTitleFontSize': labelTitleFontSize,
       'labelTitleBold': labelTitleBold,
+      'codFontSize': codFontSize,
+      'codBold': codBold,
       'lineSpacingFactor': lineSpacingFactor,
       'enableAutoSizing': enableAutoSizing,
       'maxLinesAddress': maxLinesAddress,
@@ -152,6 +168,8 @@ class FontSettings {
           json['titleFontSize'] ??
           5, // backward compatibility
       labelTitleBold: json['labelTitleBold'] ?? json['titleBold'] ?? true,
+      codFontSize: json['codFontSize'] ?? 3,
+      codBold: json['codBold'] ?? true,
       lineSpacingFactor: json['lineSpacingFactor']?.toDouble() ?? 1.2,
       enableAutoSizing: json['enableAutoSizing'] ?? true,
       maxLinesAddress: json['maxLinesAddress'] ?? 3,
@@ -193,6 +211,10 @@ class FontSettings {
       case 'labeltitle': // Main label title
         size = labelTitleFontSize;
         bold = labelTitleBold;
+        break;
+      case 'cod': // COD Amount
+        size = codFontSize;
+        bold = codBold;
         break;
       // Backward compatibility with old names
       case 'title':
@@ -258,6 +280,10 @@ class FontSettings {
         size = labelTitleFontSize;
         bold = labelTitleBold;
         break;
+      case 'cod': // COD Amount
+        size = codFontSize;
+        bold = codBold;
+        break;
       // Backward compatibility
       case 'title':
         size = labelTitleFontSize;
@@ -300,6 +326,7 @@ class FontSettings {
         'address: $addressFontSize/${addressBold ? "B" : "N"}, '
         'phone: $phoneFontSize/${phoneBold ? "B" : "N"}, '
         'labelTitle: $labelTitleFontSize/${labelTitleBold ? "B" : "N"}, '
+        'cod: $codFontSize/${codBold ? "B" : "N"}, '
         'spacing: ${lineSpacingFactor}x, '
         'autoSize: $enableAutoSizing, '
         'maxLines: $maxLinesAddress)';
@@ -319,6 +346,8 @@ class FontSettings {
         other.phoneBold == phoneBold &&
         other.labelTitleFontSize == labelTitleFontSize &&
         other.labelTitleBold == labelTitleBold &&
+        other.codFontSize == codFontSize &&
+        other.codBold == codBold &&
         other.lineSpacingFactor == lineSpacingFactor &&
         other.enableAutoSizing == enableAutoSizing &&
         other.maxLinesAddress == maxLinesAddress;
@@ -336,6 +365,8 @@ class FontSettings {
         phoneBold.hashCode ^
         labelTitleFontSize.hashCode ^
         labelTitleBold.hashCode ^
+        codFontSize.hashCode ^
+        codBold.hashCode ^
         lineSpacingFactor.hashCode ^
         enableAutoSizing.hashCode ^
         maxLinesAddress.hashCode;

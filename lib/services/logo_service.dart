@@ -312,14 +312,14 @@ class LogoService {
       final image = img.decodeImage(imageData);
       if (image == null) return null;
 
-      // Convert to format suitable for thermal printer (monochrome BMP)
-      final processedImage = await _convertToThermalFormat(image, config);
+      // Convert to format suitable for thermal printer (raw monochrome bitstream)
+      final processedImage = await _convertToTSPLFormat(image, config);
 
       return LogoData(
         imageData: processedImage,
         width: image.width,
         height: image.height,
-        format: 'BMP',
+        format: 'TSPL',
         widthMm: config.width,
         heightMm: config.height,
       );
@@ -329,24 +329,47 @@ class LogoService {
     }
   }
 
-  /// Convert image to thermal printer format
-  Future<Uint8List> _convertToThermalFormat(
+  /// Convert image to TSPL (TSC) monochrome BITMAP format
+  /// Returns raw bits: 1 for black, 0 for white, MSB first, padded to bytes
+  Future<Uint8List> _convertToTSPLFormat(
       img.Image image, LogoConfig config) async {
     try {
+      // 1. Pre-process: Grayscale and high contrast
+      img.Image processed = img.grayscale(image);
+
       // Apply opacity if needed
       if (config.opacity < 1.0) {
-        // Adjust brightness to simulate opacity
         final brightnessAdjust = (config.opacity - 1.0) * 255;
-        image = img.adjustColor(image, brightness: brightnessAdjust);
+        processed = img.adjustColor(processed, brightness: brightnessAdjust);
       }
 
-      // Convert to monochrome BMP for thermal printer
-      final monoImage = img.adjustColor(image, contrast: 2.0);
-      final bmpData = img.encodeBmp(monoImage);
+      processed = img.adjustColor(processed, contrast: 2.0);
 
-      return Uint8List.fromList(bmpData);
+      // 2. Bitpacking
+      final width = processed.width;
+      final height = processed.height;
+      final bytesPerRow = (width + 7) ~/ 8;
+      final bitmapData = Uint8List(bytesPerRow * height);
+
+      for (int y = 0; y < height; y++) {
+        for (int x = 0; x < width; x++) {
+          final pixel = processed.getPixel(x, y);
+          // image package getPixel returns a packed color.
+          // Since it's grayscale, we can check any channel (RGB) or use luminance.
+          final luminance = img.getLuminance(pixel);
+
+          if (luminance < 128) {
+            // Black pixel
+            final byteIndex = (y * bytesPerRow) + (x ~/ 8);
+            final bitIndex = 7 - (x % 8); // MSB first
+            bitmapData[byteIndex] |= (1 << bitIndex);
+          }
+        }
+      }
+
+      return bitmapData;
     } catch (e) {
-      print('Error converting to thermal format: $e');
+      print('Error converting to TSPL format: $e');
       rethrow;
     }
   }

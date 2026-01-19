@@ -231,6 +231,9 @@ class _FontSettingsScreenState extends State<FontSettingsScreen> {
                       'labeltitle',
                       _currentSettings.labelTitleFontSize,
                       _currentSettings.labelTitleBold),
+                  const SizedBox(height: 16),
+                  _buildFontSection('COD Amount', 'cod',
+                      _currentSettings.codFontSize, _currentSettings.codBold),
                   const SizedBox(height: 24),
                   _buildAdvancedSection(),
                   const SizedBox(height: 24),
@@ -369,6 +372,10 @@ class _FontSettingsScreenState extends State<FontSettingsScreen> {
                               newSettings = _currentSettings.copyWith(
                                   labelTitleFontSize: newSize);
                               break;
+                            case 'cod':
+                              newSettings = _currentSettings.copyWith(
+                                  codFontSize: newSize);
+                              break;
                             case 'subtitle':
                               newSettings = _currentSettings.copyWith(
                                   headerFontSize: newSize);
@@ -430,6 +437,10 @@ class _FontSettingsScreenState extends State<FontSettingsScreen> {
                             case 'title':
                               newSettings = _currentSettings.copyWith(
                                   labelTitleBold: value);
+                              break;
+                            case 'cod':
+                              newSettings =
+                                  _currentSettings.copyWith(codBold: value);
                               break;
                             case 'subtitle':
                               newSettings =
@@ -599,6 +610,10 @@ class _FontSettingsScreenState extends State<FontSettingsScreen> {
                   _buildPreviewText('address', 'Los Angeles, CA 90210'),
                   SizedBox(height: 2 * _currentSettings.lineSpacingFactor),
                   _buildPreviewText('phone', 'TEL: +1-555-987-6543'),
+                  SizedBox(height: 8 * _currentSettings.lineSpacingFactor),
+
+                  // COD section (Preview)
+                  _buildPreviewText('cod', 'COD: Rs 3000.00'),
                 ],
               ),
             ),
@@ -638,6 +653,10 @@ class _FontSettingsScreenState extends State<FontSettingsScreen> {
       case 'labeltitle':
         fontSize = _currentSettings.labelTitleFontSize;
         isBold = _currentSettings.labelTitleBold;
+        break;
+      case 'cod':
+        fontSize = _currentSettings.codFontSize;
+        isBold = _currentSettings.codBold;
         break;
       // Backward compatibility
       case 'title':

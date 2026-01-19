@@ -482,6 +482,90 @@ class _LabelEditorScreenState extends State<LabelEditorScreen> {
                   ),
                 ),
 
+                const SizedBox(height: 16),
+
+                // Beta Features Card (for testing only)
+                Material3Components.enhancedCard(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(Icons.science_outlined, color: Colors.orange),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Beta Features',
+                              style: textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: Colors.orange.withOpacity(0.2),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Text(
+                                'TESTING',
+                                style: textTheme.labelSmall?.copyWith(
+                                  color: Colors.orange.shade700,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        SwitchListTile(
+                          title: const Text('Delivery Label Format'),
+                          subtitle: const Text(
+                              'Use alternative layout with logo header, dividers, and SHIP FROM/TO sections'),
+                          value: _label.useBetaDeliveryFormat,
+                          onChanged: (value) {
+                            setState(() {
+                              _label.useBetaDeliveryFormat = value;
+                              _hasChanges = true;
+                            });
+                          },
+                          secondary: const Icon(Icons.local_shipping_outlined),
+                          contentPadding: EdgeInsets.zero,
+                          activeColor: Colors.orange,
+                        ),
+                        if (_label.useBetaDeliveryFormat) ...[
+                          const SizedBox(height: 8),
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.orange.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                  color: Colors.orange.withOpacity(0.3)),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(Icons.info_outline,
+                                    color: Colors.orange.shade700, size: 20),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    'Will print with CF Sri Lanka Online Store header, logo, and SHIP FROM/TO layout.',
+                                    style: textTheme.bodySmall?.copyWith(
+                                        color: Colors.orange.shade700),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
+
                 const SizedBox(height: 32),
 
                 // Action Buttons

@@ -582,8 +582,8 @@ class _CustomLabelDialogState extends State<CustomLabelDialog> {
                         if (width == null || width <= 0) {
                           return 'Invalid';
                         }
-                        if (width > 80) {
-                          return 'Max 80mm';
+                        if (width > 105) {
+                          return 'Max 105mm';
                         }
                         return null;
                       },
@@ -605,8 +605,8 @@ class _CustomLabelDialogState extends State<CustomLabelDialog> {
                         if (height == null || height <= 0) {
                           return 'Invalid';
                         }
-                        if (height > 50) {
-                          return 'Max 50mm';
+                        if (height > 200) {
+                          return 'Max 200mm';
                         }
                         return null;
                       },
@@ -663,8 +663,8 @@ class _CustomLabelDialogState extends State<CustomLabelDialog> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      '• Maximum width: 80mm\n'
-                      '• Maximum height: 50mm\n'
+                      '• Maximum width: 105mm\n'
+                      '• Maximum height: 200mm\n'
                       '• Gap range: 0-10mm',
                       style: TextStyle(
                           fontSize: 11, color: colorScheme.onTertiaryContainer),
