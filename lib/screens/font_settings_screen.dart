@@ -577,18 +577,6 @@ class _FontSettingsScreenState extends State<FontSettingsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Show title only for larger labels
-                  if (_currentSettings.labelTitleFontSize >= 3) ...[
-                    Center(
-                        child:
-                            _buildPreviewText('labeltitle', 'SHIPPING LABEL')),
-                    SizedBox(height: 4 * _currentSettings.lineSpacingFactor),
-                    Center(
-                        child:
-                            _buildPreviewText('name', '====================')),
-                    SizedBox(height: 8 * _currentSettings.lineSpacingFactor),
-                  ],
-
                   // TO section
                   _buildPreviewText('header', 'TO:'),
                   SizedBox(height: 4 * _currentSettings.lineSpacingFactor),
@@ -611,12 +599,6 @@ class _FontSettingsScreenState extends State<FontSettingsScreen> {
                   _buildPreviewText('address', 'Los Angeles, CA 90210'),
                   SizedBox(height: 2 * _currentSettings.lineSpacingFactor),
                   _buildPreviewText('phone', 'TEL: +1-555-987-6543'),
-                  SizedBox(height: 8 * _currentSettings.lineSpacingFactor),
-
-                  // Footer info
-                  _buildPreviewText('name', 'LABEL ID: LBL-123456'),
-                  SizedBox(height: 2 * _currentSettings.lineSpacingFactor),
-                  _buildPreviewText('small', 'Date: 2025-09-08'),
                 ],
               ),
             ),

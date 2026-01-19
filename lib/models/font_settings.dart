@@ -1,39 +1,39 @@
 /// Font settings model for thermal printer configuration
 class FontSettings {
   // Header fonts (TO/FROM labels)
-  final int headerFontSize;        // For "TO:" and "FROM:" text
+  final int headerFontSize; // For "TO:" and "FROM:" text
   final bool headerBold;
-  
+
   // Name fonts (recipient and sender names)
-  final int nameFontSize;          // For names under TO: and FROM:
+  final int nameFontSize; // For names under TO: and FROM:
   final bool nameBold;
-  
+
   // Address fonts (address lines)
-  final int addressFontSize;       // For address lines
+  final int addressFontSize; // For address lines
   final bool addressBold;
-  
+
   // Phone fonts (telephone numbers)
-  final int phoneFontSize;         // For TEL: lines
+  final int phoneFontSize; // For TEL: lines
   final bool phoneBold;
-  
+
   // Label title font (optional header like "SHIPPING LABEL")
-  final int labelTitleFontSize;    // For main label title
+  final int labelTitleFontSize; // For main label title
   final bool labelTitleBold;
-  
+
   final double lineSpacingFactor;
   final bool enableAutoSizing;
   final int maxLinesAddress;
 
   const FontSettings({
-    this.headerFontSize = 4,         // TO:/FROM: headers
+    this.headerFontSize = 4, // TO:/FROM: headers
     this.headerBold = true,
-    this.nameFontSize = 3,           // Names
+    this.nameFontSize = 3, // Names
     this.nameBold = false,
-    this.addressFontSize = 2,        // Address lines
+    this.addressFontSize = 2, // Address lines
     this.addressBold = false,
-    this.phoneFontSize = 2,          // Phone numbers
+    this.phoneFontSize = 2, // Phone numbers
     this.phoneBold = false,
-    this.labelTitleFontSize = 5,     // Main title
+    this.labelTitleFontSize = 5, // Main title
     this.labelTitleBold = true,
     this.lineSpacingFactor = 1.2,
     this.enableAutoSizing = true,
@@ -45,32 +45,32 @@ class FontSettings {
 
   /// Small label optimized settings
   static const FontSettings smallLabel = FontSettings(
-    headerFontSize: 3,              // TO:/FROM: smaller
+    headerFontSize: 3, // TO:/FROM: smaller
     headerBold: true,
-    nameFontSize: 2,                // Names smaller
+    nameFontSize: 2, // Names smaller
     nameBold: false,
-    addressFontSize: 2,             // Address same as names
+    addressFontSize: 2, // Address same as names
     addressBold: false,
-    phoneFontSize: 1,               // Phone numbers smallest
+    phoneFontSize: 1, // Phone numbers smallest
     phoneBold: false,
-    labelTitleFontSize: 3,          // Title smaller
+    labelTitleFontSize: 3, // Title smaller
     labelTitleBold: true,
     lineSpacingFactor: 1.0,
     enableAutoSizing: true,
     maxLinesAddress: 2,
   );
 
-  /// Large label optimized settings  
+  /// Large label optimized settings
   static const FontSettings largeLabel = FontSettings(
-    headerFontSize: 5,              // TO:/FROM: larger
+    headerFontSize: 5, // TO:/FROM: larger
     headerBold: true,
-    nameFontSize: 4,                // Names larger
+    nameFontSize: 4, // Names larger
     nameBold: true,
-    addressFontSize: 3,             // Address larger
+    addressFontSize: 3, // Address larger
     addressBold: false,
-    phoneFontSize: 2,               // Phone numbers larger
+    phoneFontSize: 2, // Phone numbers larger
     phoneBold: false,
-    labelTitleFontSize: 6,          // Title largest
+    labelTitleFontSize: 6, // Title largest
     labelTitleBold: true,
     lineSpacingFactor: 1.3,
     enableAutoSizing: true,
@@ -132,15 +132,25 @@ class FontSettings {
   /// Create from JSON
   factory FontSettings.fromJson(Map<String, dynamic> json) {
     return FontSettings(
-      headerFontSize: json['headerFontSize'] ?? json['subtitleFontSize'] ?? 4,        // backward compatibility
+      headerFontSize: json['headerFontSize'] ??
+          json['subtitleFontSize'] ??
+          4, // backward compatibility
       headerBold: json['headerBold'] ?? json['subtitleBold'] ?? true,
-      nameFontSize: json['nameFontSize'] ?? json['contentFontSize'] ?? 3,             // backward compatibility
+      nameFontSize: json['nameFontSize'] ??
+          json['contentFontSize'] ??
+          3, // backward compatibility
       nameBold: json['nameBold'] ?? json['contentBold'] ?? false,
-      addressFontSize: json['addressFontSize'] ?? json['contentFontSize'] ?? 2,       // backward compatibility
+      addressFontSize: json['addressFontSize'] ??
+          json['contentFontSize'] ??
+          2, // backward compatibility
       addressBold: json['addressBold'] ?? json['contentBold'] ?? false,
-      phoneFontSize: json['phoneFontSize'] ?? json['smallFontSize'] ?? 2,             // backward compatibility
+      phoneFontSize: json['phoneFontSize'] ??
+          json['smallFontSize'] ??
+          2, // backward compatibility
       phoneBold: json['phoneBold'] ?? json['smallBold'] ?? false,
-      labelTitleFontSize: json['labelTitleFontSize'] ?? json['titleFontSize'] ?? 5,   // backward compatibility
+      labelTitleFontSize: json['labelTitleFontSize'] ??
+          json['titleFontSize'] ??
+          5, // backward compatibility
       labelTitleBold: json['labelTitleBold'] ?? json['titleBold'] ?? true,
       lineSpacingFactor: json['lineSpacingFactor']?.toDouble() ?? 1.2,
       enableAutoSizing: json['enableAutoSizing'] ?? true,
@@ -151,32 +161,36 @@ class FontSettings {
   /// Get font size and bold format for TSC TEXT command
   /// Now uses clear element-based font types:
   /// - 'header' for TO:/FROM: labels
-  /// - 'name' for recipient/sender names  
+  /// - 'name' for recipient/sender names
   /// - 'address' for address lines
   /// - 'phone' for telephone numbers
   /// - 'labeltitle' for main label title
+  ///
+  /// TSC TEXT command format: TEXT x,y,"font",rotation,x-mult,y-mult,"content"
+  /// - "font": Fixed font number (1=8x12, 2=12x20, 3=16x24, 4=24x32)
+  /// - x-mult, y-mult: Size multipliers (1-10)
   String getTscFontCommand(String fontType) {
     int size;
     bool bold;
-    
+
     switch (fontType.toLowerCase()) {
-      case 'header':           // TO:/FROM: headers
+      case 'header': // TO:/FROM: headers
         size = headerFontSize;
         bold = headerBold;
         break;
-      case 'name':             // Names
+      case 'name': // Names
         size = nameFontSize;
         bold = nameBold;
         break;
-      case 'address':          // Address lines
+      case 'address': // Address lines
         size = addressFontSize;
         bold = addressBold;
         break;
-      case 'phone':            // Phone numbers
+      case 'phone': // Phone numbers
         size = phoneFontSize;
         bold = phoneBold;
         break;
-      case 'labeltitle':       // Main label title
+      case 'labeltitle': // Main label title
         size = labelTitleFontSize;
         bold = labelTitleBold;
         break;
@@ -190,7 +204,7 @@ class FontSettings {
         bold = headerBold;
         break;
       case 'content':
-        size = nameFontSize;     // Default to name font
+        size = nameFontSize; // Default to name font
         bold = nameBold;
         break;
       case 'small':
@@ -201,77 +215,94 @@ class FontSettings {
         size = nameFontSize;
         bold = nameBold;
     }
-    
+
     // TSC font format: "font",rotation,x_magnification,y_magnification
-    // For TEXT command: TEXT x,y,"font",rotation,x_mag,y_mag,"content"
-    // Bold is handled through magnification (2 for bold, 1 for normal)
-    int magnification = bold ? 2 : 1;
-    return '"$size",0,$magnification,$magnification';
+    // Use base font "2" (12x20) for good readability
+    // Convert size (1-8) to reasonable multiplier (1-4)
+    // Size 1-2 -> mult 1, Size 3-4 -> mult 2, Size 5-6 -> mult 3, Size 7-8 -> mult 4
+    int multiplier = ((size + 1) ~/ 2).clamp(1, 4);
+
+    // For bold: add 1 to horizontal (x) multiplier only for slight emphasis
+    // This gives a bolder look without making text huge
+    int xMult = bold ? multiplier + 1 : multiplier;
+    int yMult = multiplier;
+
+    // Use font "2" (12x20) as base - good balance of size and clarity
+    return '"2",0,$xMult,$yMult';
   }
 
   /// Get approximate text dimensions for layout calculations
+  /// Based on font "2" (12x20) with multipliers
   Map<String, int> getTextDimensions(String fontType) {
     int size;
-    
+    bool bold;
+
     switch (fontType.toLowerCase()) {
-      case 'header':           // TO:/FROM: headers
+      case 'header': // TO:/FROM: headers
         size = headerFontSize;
+        bold = headerBold;
         break;
-      case 'name':             // Names
+      case 'name': // Names
         size = nameFontSize;
+        bold = nameBold;
         break;
-      case 'address':          // Address lines
+      case 'address': // Address lines
         size = addressFontSize;
+        bold = addressBold;
         break;
-      case 'phone':            // Phone numbers
+      case 'phone': // Phone numbers
         size = phoneFontSize;
+        bold = phoneBold;
         break;
-      case 'labeltitle':       // Main label title
+      case 'labeltitle': // Main label title
         size = labelTitleFontSize;
+        bold = labelTitleBold;
         break;
       // Backward compatibility
       case 'title':
         size = labelTitleFontSize;
+        bold = labelTitleBold;
         break;
       case 'subtitle':
         size = headerFontSize;
+        bold = headerBold;
         break;
       case 'content':
         size = nameFontSize;
+        bold = nameBold;
         break;
       case 'small':
         size = phoneFontSize;
+        bold = phoneBold;
         break;
       default:
         size = nameFontSize;
+        bold = false;
     }
-    
-    // Approximate dimensions in dots (8 dots per mm for 203 DPI)
-    // These are rough estimates - actual may vary by printer
-    Map<int, Map<String, int>> fontDimensions = {
-      1: {'width': 8, 'height': 12},
-      2: {'width': 12, 'height': 16},
-      3: {'width': 16, 'height': 24},
-      4: {'width': 24, 'height': 32},
-      5: {'width': 32, 'height': 48},
-      6: {'width': 40, 'height': 56},
-      7: {'width': 48, 'height': 64},
-      8: {'width': 56, 'height': 72},
+
+    // Base font "2" is 12x20 dots
+    // Convert size (1-8) to multiplier (1-4)
+    int multiplier = ((size + 1) ~/ 2).clamp(1, 4);
+    int xMult = bold ? multiplier + 1 : multiplier;
+    int yMult = multiplier;
+
+    // Calculate actual dimensions (base font 2 = 12x20)
+    return {
+      'width': 12 * xMult,
+      'height': 20 * yMult,
     };
-    
-    return fontDimensions[size] ?? fontDimensions[2]!;
   }
 
   @override
   String toString() {
     return 'FontSettings(header: $headerFontSize/${headerBold ? "B" : "N"}, '
-           'name: $nameFontSize/${nameBold ? "B" : "N"}, '
-           'address: $addressFontSize/${addressBold ? "B" : "N"}, '
-           'phone: $phoneFontSize/${phoneBold ? "B" : "N"}, '
-           'labelTitle: $labelTitleFontSize/${labelTitleBold ? "B" : "N"}, '
-           'spacing: ${lineSpacingFactor}x, '
-           'autoSize: $enableAutoSizing, '
-           'maxLines: $maxLinesAddress)';
+        'name: $nameFontSize/${nameBold ? "B" : "N"}, '
+        'address: $addressFontSize/${addressBold ? "B" : "N"}, '
+        'phone: $phoneFontSize/${phoneBold ? "B" : "N"}, '
+        'labelTitle: $labelTitleFontSize/${labelTitleBold ? "B" : "N"}, '
+        'spacing: ${lineSpacingFactor}x, '
+        'autoSize: $enableAutoSizing, '
+        'maxLines: $maxLinesAddress)';
   }
 
   @override

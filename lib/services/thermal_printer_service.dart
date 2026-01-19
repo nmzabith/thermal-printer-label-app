@@ -831,17 +831,6 @@ class ThermalPrinterService {
       int smallLineHeight = (smallDims['height']! * lineSpacingFactor).round();
       int sectionSpacing = contentLineHeight;
 
-      // Header - adjust based on label size
-      if (labelConfig.heightMm >= 80) {
-        commands.add(
-            'TEXT 20,$yPos,${effectiveSettings.getTscFontCommand('labeltitle')},"SHIPPING LABEL"');
-        yPos += titleLineHeight + sectionSpacing;
-
-        commands.add(
-            'TEXT 20,$yPos,${effectiveSettings.getTscFontCommand('name')},"=========================="');
-        yPos += contentLineHeight;
-      }
-
       // TO section (appears first as per requirement)
       commands.add(
           'TEXT 20,$yPos,${effectiveSettings.getTscFontCommand('header')},"TO:"');
@@ -883,14 +872,6 @@ class ThermalPrinterService {
         yPos += smallLineHeight;
       }
       yPos += sectionSpacing;
-
-      // COD (Cash on Delivery) amount - if enabled
-      if (label.codEnabled && label.codAmount > 0) {
-        String codText = 'COD: Rs ${label.codAmount.toStringAsFixed(2)}';
-        commands.add(
-            'TEXT 20,$yPos,${effectiveSettings.getTscFontCommand('name')},"$codText"');
-        yPos += contentLineHeight + 10; // Extra spacing after COD
-      }
 
       // FROM section
       commands.add(
@@ -934,40 +915,18 @@ class ThermalPrinterService {
       }
       yPos += sectionSpacing;
 
-      // Order details - only if space is available and label is large enough
-      int remainingHeight =
-          labelHeightDots - yPos - 20; // 20 dots bottom margin
-      if (labelConfig.heightMm >= 60 &&
-          remainingHeight >= (contentLineHeight * 2)) {
+      // COD (Cash on Delivery) amount - if enabled (after FROM section)
+      if (label.codEnabled && label.codAmount > 0) {
+        String codText = 'COD: Rs ${label.codAmount.toStringAsFixed(2)}';
         commands.add(
-            'TEXT 20,$yPos,${effectiveSettings.getTscFontCommand('name')},"LABEL ID: ${label.id}"');
-        yPos += contentLineHeight;
-
-        if (remainingHeight >= (contentLineHeight * 3)) {
-          // Still have space for date
-          commands.add(
-              'TEXT 20,$yPos,${effectiveSettings.getTscFontCommand('phone')},"Date: ${label.createdAt.toString().substring(0, 10)}"');
-          yPos += smallLineHeight;
-        }
-
-        // Add barcode or QR code for label identification if space allows
-        if (labelConfig.heightMm >= 80 &&
-            remainingHeight >= (contentLineHeight * 3)) {
-          commands.add(
-              'TEXT 20,$yPos,${effectiveSettings.getTscFontCommand('phone')},"Tracking: ${label.id.substring(label.id.length - 8)}"');
-        }
+            'TEXT 20,$yPos,${effectiveSettings.getTscFontCommand('name')},"$codText"');
+        yPos += contentLineHeight + 10; // Extra spacing after COD
       }
 
-      // Add logo if enabled for this label
-      if (label.includeLogo) {
-        await _addLogoToCommands(commands, label, labelConfig);
-      }
-
-      // Add thanks message if enabled for this label
-      if (label.includeThanksMessage) {
-        await _addThanksMessageToCommands(
-            commands, labelConfig, labelWidthDots, labelHeightDots);
-      }
+      // Footer section: Logo (centered) and Thanks Message (centered below logo)
+      // Both are optional - calculate positions based on what's enabled
+      await _addFooterToCommands(
+          commands, label, labelConfig, labelWidthDots, labelHeightDots);
 
       // Print command
       commands.add('PRINT 1,1');
@@ -1024,6 +983,143 @@ class ThermalPrinterService {
     }
   }
 
+  /// Add footer section to label: Logo (centered) and Thanks Message (centered)
+  /// Layout: Logo above Thanks Message when both enabled, both centered
+  ///
+  /// TSC Coordinate System:
+  /// - Origin (0,0) is at TOP-LEFT corner
+  /// - X increases to the right
+  /// - Y increases DOWNWARD
+  /// - Position specified is always TOP-LEFT corner of element
+  Future<void> _addFooterToCommands(List<String> commands, ShippingLabel label,
+      LabelConfig labelConfig, int labelWidthDots, int labelHeightDots) async {
+    try {
+      final logoService = LogoService();
+
+      // Get logo config if logo is enabled
+      LogoConfig? logoConfig;
+      Uint8List? logoBytes;
+      int logoWidthDots = 0;
+      int logoHeightDots = 0;
+
+      if (label.includeLogo) {
+        if (label.fromInfo.hasLogo) {
+          logoConfig = label.fromInfo.logoConfig!;
+        } else {
+          logoConfig = await logoService.getDefaultLogoConfig();
+        }
+
+        if (logoConfig != null && logoConfig.shouldShowLogo) {
+          final logoData = await logoService.processLogoForPrinting(logoConfig);
+          if (logoData != null) {
+            // Limit logo size to max 80x80 dots (10mm x 10mm)
+            final maxLogoDots = 80;
+            logoWidthDots =
+                (logoConfig.width * 8).toInt().clamp(8, maxLogoDots);
+            logoHeightDots =
+                (logoConfig.height * 8).toInt().clamp(8, maxLogoDots);
+            logoBytes = _convertLogoToBitmapBytes(
+                logoData.imageData, logoWidthDots, logoHeightDots);
+          }
+        }
+      }
+
+      // Get thanks message if enabled
+      String? thanksMessage;
+      if (label.includeThanksMessage) {
+        final defaultLogoConfig = await logoService.getDefaultLogoConfig();
+        if (defaultLogoConfig != null &&
+            defaultLogoConfig.thanksMessageEnabled) {
+          thanksMessage = defaultLogoConfig.thanksMessage;
+          if (thanksMessage.isEmpty) thanksMessage = null;
+        }
+      }
+
+      // Layout constants
+      const int bottomMargin =
+          20; // margin from bottom of label in dots (~2.5mm)
+      const int messageHeight =
+          20; // approximate height for thanks message text
+      const int logoToMsgGap = 8; // gap between logo and message
+
+      // Calculate total footer height first to determine starting Y
+      int footerHeight = 0;
+
+      if (thanksMessage != null) {
+        footerHeight += messageHeight;
+      }
+      if (logoBytes != null && logoBytes.isNotEmpty) {
+        if (footerHeight > 0)
+          footerHeight += logoToMsgGap; // add gap if message exists
+        footerHeight += logoHeightDots;
+      }
+
+      // Calculate where footer starts (top of footer area)
+      // Footer bottom edge: labelHeightDots - bottomMargin
+      // Footer top edge: labelHeightDots - bottomMargin - footerHeight
+      int footerTopY = labelHeightDots - bottomMargin - footerHeight;
+
+      // Ensure footer doesn't go into negative Y
+      if (footerTopY < 100) {
+        print('Warning: Footer would overlap content area, adjusting position');
+        footerTopY = 100; // Minimum Y to prevent overlap with content
+      }
+
+      int currentY = footerTopY;
+
+      // Add Logo first (at top of footer, centered horizontally)
+      if (logoBytes != null && logoBytes.isNotEmpty) {
+        final bytesPerRow = (logoWidthDots + 7) ~/ 8;
+
+        // Calculate centered X position for logo
+        // X = (labelWidth - logoWidth) / 2
+        final logoX = ((labelWidthDots - logoWidthDots) / 2).toInt();
+        final logoY = currentY;
+
+        // Validate positions
+        if (logoY >= 0 &&
+            logoX >= 0 &&
+            logoX + logoWidthDots <= labelWidthDots) {
+          // Use hex encoding for TSC bitmap
+          final hexData = logoBytes
+              .map((b) => b.toRadixString(16).padLeft(2, '0'))
+              .join('');
+          commands.add(
+              'BITMAP $logoX,$logoY,$bytesPerRow,$logoHeightDots,0,$hexData');
+          print(
+              'Added logo at ($logoX,$logoY) size ${logoWidthDots}x${logoHeightDots} dots');
+
+          currentY += logoHeightDots + logoToMsgGap; // Move down for message
+        } else {
+          print(
+              'Logo position out of bounds: x=$logoX, y=$logoY - skipping logo');
+        }
+      }
+
+      // Add Thanks Message below logo (or at footer top if no logo), centered
+      if (thanksMessage != null) {
+        // Calculate centered X position for text
+        // TSC font 3 is approximately 8x16 dots (8 wide, 16 tall)
+        final charWidth = 8;
+        final textWidthDots = thanksMessage.length * charWidth;
+        final msgX = ((labelWidthDots - textWidthDots) / 2).toInt();
+        final msgY = currentY;
+
+        // Ensure X is within bounds
+        final clampedMsgX = msgX.clamp(5, labelWidthDots - textWidthDots - 5);
+
+        // TSC TEXT command: TEXT x,y,font,rotation,h-mult,v-mult,text
+        // Font 3 = 8x16 alphanumeric
+        commands.add(
+            'TEXT $clampedMsgX,$msgY,"3",0,1,1,"${_sanitizeText(thanksMessage)}"');
+        print('Added thanks message at ($clampedMsgX,$msgY): "$thanksMessage"');
+      }
+    } catch (e) {
+      print('Error adding footer to label: $e');
+      // Don't throw - continue printing without footer
+    }
+  }
+
   /// Add logo to TSC commands for label printing
   /// Places logo in the bottom right corner of the label
   Future<void> _addLogoToCommands(List<String> commands, ShippingLabel label,
@@ -1054,12 +1150,15 @@ class ThermalPrinterService {
         return;
       }
 
+      // Limit logo size to prevent printer freeze (max 80x80 dots = 10x10mm)
+      final maxLogoDots = 80;
+      var logoWidthDots = (logoConfig.width * 8).toInt().clamp(8, maxLogoDots);
+      var logoHeightDots =
+          (logoConfig.height * 8).toInt().clamp(8, maxLogoDots);
+
       // Calculate logo position (bottom right corner)
-      final labelWidthDots = (labelConfig.widthMm * 8)
-          .toInt(); // Convert mm to dots (203 DPI ≈ 8 dots/mm)
+      final labelWidthDots = (labelConfig.widthMm * 8).toInt();
       final labelHeightDots = (labelConfig.heightMm * 8).toInt();
-      final logoWidthDots = (logoConfig.width * 8).toInt();
-      final logoHeightDots = (logoConfig.height * 8).toInt();
 
       // Position logo in bottom right corner with margin
       const marginDots = 20; // 2.5mm margin
@@ -1072,20 +1171,37 @@ class ThermalPrinterService {
         return;
       }
 
-      // Add TSC bitmap command for logo
-      // For TSC printers, we need to use BITMAP command
-      // Format: BITMAP x,y,width,height,mode,image_data
-
-      // Convert logo data to monochrome bitmap format suitable for TSC
-      final bitmapData = _convertLogoToBitmap(
+      // Convert logo data to monochrome bitmap format for TSC
+      // TSC BITMAP format: BITMAP x,y,widthBytes,heightDots,mode,binaryData
+      // widthBytes = (widthDots + 7) / 8
+      final bytesPerRow = (logoWidthDots + 7) ~/ 8;
+      final bitmapBytes = _convertLogoToBitmapBytes(
           logoData.imageData, logoWidthDots, logoHeightDots);
 
-      if (bitmapData.isNotEmpty) {
-        // TSC BITMAP command - mode 0 for overwrite
-        commands.add(
-            'BITMAP $logoX,$logoY,$logoWidthDots,$logoHeightDots,0,${bitmapData}');
+      if (bitmapBytes != null && bitmapBytes.isNotEmpty) {
+        // Build BITMAP command with raw binary data
+        // Format: BITMAP x,y,widthInBytes,height,mode,data
+        final bitmapCommand =
+            'BITMAP $logoX,$logoY,$bytesPerRow,$logoHeightDots,0,';
+
+        // Add command as bytes followed by raw bitmap data
+        final commandBytes = bitmapCommand.codeUnits;
+        final fullData = Uint8List(commandBytes.length + bitmapBytes.length);
+        fullData.setRange(0, commandBytes.length, commandBytes);
+        fullData.setRange(commandBytes.length, fullData.length, bitmapBytes);
+
+        // Store for special handling - we'll add this separately
+        // For now, skip logo to prevent freeze until we can test binary mode
         print(
-            'Added logo to label at position ($logoX,$logoY) with size ${logoWidthDots}x${logoHeightDots} dots');
+            'Logo prepared: ${bitmapBytes.length} bytes for ${logoWidthDots}x${logoHeightDots} dots');
+        print('BITMAP command: $bitmapCommand (binary data follows)');
+
+        // Use hex encoding which some TSC clones support better
+        final hexData = bitmapBytes
+            .map((b) => b.toRadixString(16).padLeft(2, '0'))
+            .join('');
+        commands.add(
+            'BITMAP $logoX,$logoY,$bytesPerRow,$logoHeightDots,0,$hexData');
       } else {
         print(
             'Failed to convert logo to bitmap format - skipping logo addition');
@@ -1096,26 +1212,34 @@ class ThermalPrinterService {
     }
   }
 
-  /// Convert logo image data to TSC-compatible bitmap format
-  /// Returns hex string representation of monochrome bitmap
-  String _convertLogoToBitmap(
+  /// Convert logo image data to TSC-compatible bitmap bytes
+  /// Returns raw bytes for monochrome bitmap
+  Uint8List? _convertLogoToBitmapBytes(
       Uint8List imageData, int widthDots, int heightDots) {
     try {
       // For TSC printers, we need monochrome bitmap data
       // Each bit represents one dot (1=black, 0=white)
       // Data should be organized row by row, with each row padded to byte boundary
 
-      final bytesPerRow = ((widthDots + 7) ~/ 8); // Round up to next byte
+      final bytesPerRow = (widthDots + 7) ~/ 8; // Round up to next byte
       final totalBytes = bytesPerRow * heightDots;
-      final bitmapBytes = List<int>.filled(totalBytes, 0);
+      final bitmapBytes = Uint8List(totalBytes);
+
+      // Determine image format - check if we have enough data
+      if (imageData.length < widthDots * heightDots) {
+        print(
+            'Image data too small: ${imageData.length} bytes for ${widthDots}x${heightDots}');
+        return null;
+      }
+
+      // Try to detect format - assume RGBA (4 bytes per pixel)
+      final pixelBytes = 4;
+      final expectedSize = widthDots * heightDots * pixelBytes;
 
       // Convert image data to monochrome bitmap
-      // This is a simplified conversion - for better results, use image processing
-      for (int y = 0; y < heightDots && y * 4 < imageData.length; y++) {
-        for (int x = 0;
-            x < widthDots && (y * widthDots + x) * 4 < imageData.length;
-            x++) {
-          final pixelIndex = (y * widthDots + x) * 4; // Assuming RGBA format
+      for (int y = 0; y < heightDots; y++) {
+        for (int x = 0; x < widthDots; x++) {
+          final pixelIndex = (y * widthDots + x) * pixelBytes;
 
           if (pixelIndex + 2 < imageData.length) {
             // Get RGB values (ignore alpha for now)
@@ -1124,7 +1248,7 @@ class ThermalPrinterService {
             final b = imageData[pixelIndex + 2];
 
             // Convert to grayscale and threshold
-            final gray = ((r + g + b) / 3).round();
+            final gray = ((r * 0.299 + g * 0.587 + b * 0.114)).round();
             final isBlack = gray < 128; // Threshold at 50%
 
             if (isBlack) {
@@ -1138,14 +1262,11 @@ class ThermalPrinterService {
         }
       }
 
-      // Convert bytes to hex string
-      return bitmapBytes
-          .map((b) => b.toRadixString(16).padLeft(2, '0'))
-          .join('')
-          .toUpperCase();
+      print('Converted logo to ${bitmapBytes.length} bitmap bytes');
+      return bitmapBytes;
     } catch (e) {
       print('Error converting logo to bitmap: $e');
-      return '';
+      return null;
     }
   }
 
