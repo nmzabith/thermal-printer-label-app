@@ -239,7 +239,7 @@ class FontSettings {
     }
 
     // TSC font format: "font",rotation,x_magnification,y_magnification
-    // Use base font "2" (12x20) for good readability
+    // Use base font "3" (16x24) to match beta labels and thanks messages
     // Convert size (1-8) to reasonable multiplier (1-4)
     // Size 1-2 -> mult 1, Size 3-4 -> mult 2, Size 5-6 -> mult 3, Size 7-8 -> mult 4
     int multiplier = ((size + 1) ~/ 2).clamp(1, 4);
@@ -249,12 +249,12 @@ class FontSettings {
     int xMult = bold ? multiplier + 1 : multiplier;
     int yMult = multiplier;
 
-    // Use font "2" (12x20) as base - good balance of size and clarity
-    return '"2",0,$xMult,$yMult';
+    // Use font "3" (16x24) as base - matches beta labels and thanks messages
+    return '"3",0,$xMult,$yMult';
   }
 
   /// Get approximate text dimensions for layout calculations
-  /// Based on font "2" (12x20) with multipliers
+  /// Based on font "3" (16x24) with multipliers
   Map<String, int> getTextDimensions(String fontType) {
     int size;
     bool bold;
@@ -306,16 +306,16 @@ class FontSettings {
         bold = false;
     }
 
-    // Base font "2" is 12x20 dots
+    // Base font "3" is 16x24 dots
     // Convert size (1-8) to multiplier (1-4)
     int multiplier = ((size + 1) ~/ 2).clamp(1, 4);
     int xMult = bold ? multiplier + 1 : multiplier;
     int yMult = multiplier;
 
-    // Calculate actual dimensions (base font 2 = 12x20)
+    // Calculate actual dimensions (base font 3 = 16x24)
     return {
-      'width': 12 * xMult,
-      'height': 20 * yMult,
+      'width': 16 * xMult,
+      'height': 24 * yMult,
     };
   }
 

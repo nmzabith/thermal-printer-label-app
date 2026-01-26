@@ -1090,39 +1090,7 @@ class ThermalPrinterService {
       commands.add('BAR $margin,$curY,$contentWidth,3');
       curY += 15;
 
-      // 2. SHIP FROM Section
-      commands.add('TEXT $margin,$curY,"3",0,1,1,"SHIP FROM"');
-      curY += 35;
-
-      // FROM Address
-      // Use smaller font for address (Font 2 approx 8x12)
-      String fromName = _sanitizeText(label.fromInfo.name);
-      commands.add('TEXT $margin,$curY,"2",0,1,1,"$fromName"');
-      curY += 25;
-
-      if (label.fromInfo.address.isNotEmpty) {
-        List<String> fromLines =
-            _splitAddress(label.fromInfo.address, maxWidth: 45);
-        for (String line in fromLines) {
-          commands.add(
-              'TEXT $margin,$curY,"2",0,1,1,"${_sanitizeText(line.trim())}"');
-          curY += 25;
-        }
-      }
-
-      // FROM Phone
-      String fromPhone = label.fromInfo.phoneNumber1;
-      if (fromPhone.isNotEmpty) {
-        commands.add('TEXT $margin,$curY,"2",0,1,1,"TEL: $fromPhone"');
-        curY += 25;
-      }
-
-      curY += 10;
-      // Divider 2
-      commands.add('BAR $margin,$curY,$contentWidth,3');
-      curY += 15;
-
-      // 3. SHIP TO Section
+      // 2. SHIP TO Section (moved to be first)
       commands.add('TEXT $margin,$curY,"3",0,1,1,"SHIP TO"');
       curY += 35;
 
@@ -1152,15 +1120,54 @@ class ThermalPrinterService {
         curY += 25;
       }
 
-      // Add extra spacing before COD
+      curY += 10;
+      // Divider 2
+      commands.add('BAR $margin,$curY,$contentWidth,3');
       curY += 15;
 
-      // COD (Moved inside SHIP TO section)
+      // 3. SHIP FROM Section (moved to be second)
+      commands.add('TEXT $margin,$curY,"3",0,1,1,"SHIP FROM"');
+      curY += 35;
+
+      // FROM Address
+      // Use smaller font for address (Font 2 approx 8x12)
+      String fromName = _sanitizeText(label.fromInfo.name);
+      commands.add('TEXT $margin,$curY,"2",0,1,1,"$fromName"');
+      curY += 25;
+
+      if (label.fromInfo.address.isNotEmpty) {
+        List<String> fromLines =
+            _splitAddress(label.fromInfo.address, maxWidth: 45);
+        for (String line in fromLines) {
+          commands.add(
+              'TEXT $margin,$curY,"2",0,1,1,"${_sanitizeText(line.trim())}"');
+          curY += 25;
+        }
+      }
+
+      // FROM Phone
+      String fromPhone = label.fromInfo.phoneNumber1;
+      if (fromPhone.isNotEmpty) {
+        commands.add('TEXT $margin,$curY,"2",0,1,1,"TEL: $fromPhone"');
+        curY += 25;
+      }
+
+      curY += 10;
+      // Divider 3
+      commands.add('BAR $margin,$curY,$contentWidth,3');
+      curY += 15;
+
+      // 4. COD Section (separate section now)
       if (label.codEnabled) {
         String codText = 'COD: Rs ${label.codAmount.toStringAsFixed(2)}';
         commands.add(
             'TEXT $margin,$curY,${fontSettings.getTscFontCommand('cod')},"$codText"');
         curY += 35;
+
+        curY += 10;
+        // Divider 4 (after COD)
+        commands.add('BAR $margin,$curY,$contentWidth,3');
+        curY += 15;
       }
 
       curY += 20; // Spacing after section
